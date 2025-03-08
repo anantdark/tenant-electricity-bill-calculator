@@ -1,0 +1,8 @@
+Type,Timestamp,Tenant,Reading/Amount,Consumption,Balances
+READING,2025-02-21 18:53:23,Ground Floor,2460.0,2460.0,Ground Floor: Rs.0.00; First Floor: Rs.0.00; Second Floor: Rs.0.00
+READING,2025-02-21 18:53:23,First Floor,5677.0,5677.0,Ground Floor: Rs.0.00; First Floor: Rs.0.00; Second Floor: Rs.0.00
+READING,2025-02-21 18:53:23,Second Floor,940.0,940.0,Ground Floor: Rs.0.00; First Floor: Rs.0.00; Second Floor: Rs.0.00
+RECHARGE,2025-02-21 19:36:35,First Floor,1200.0,,Ground Floor: Rs.0.00; First Floor: Rs.1200.00; Second Floor: Rs.0.00
+READING,2025-03-08 19:37:20,Ground Floor,2497.0,37.0,Ground Floor: Rs.0.00; First Floor: Rs.1200.00; Second Floor: Rs.0.00
+READING,2025-03-08 19:37:20,First Floor,5790.0,113.0,Ground Floor: Rs.0.00; First Floor: Rs.1200.00; Second Floor: Rs.0.00
+READING,2025-03-08 19:37:20,Second Floor,957.0,17.0,Ground Floor: Rs.0.00; First Floor: Rs.1200.00; Second Floor: Rs.0.00
