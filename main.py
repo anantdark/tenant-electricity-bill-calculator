@@ -718,29 +718,33 @@ def sync_balances_with_previous_recharge(tenant_names, tenant_readings, tenant_b
     print("="*60)
     print(f"Previous recharge: Rs.{prev_recharge_amount:.2f} by {tenant_names[prev_recharge_tenant-1]}")
     
-    # Reset balances to zero
+    # Calculate unit price based on the previous recharge amount and total consumption
+    unit_price = prev_recharge_amount / total_consumption
+    
+    # Reset all balances to zero
     synced_balances = [0] * len(tenant_balances)
     
     # Add the previous recharge to the tenant who paid
     synced_balances[prev_recharge_tenant - 1] += prev_recharge_amount
     
-    # Calculate each tenant's share
-    shares = [consumption / total_consumption for consumption in consumptions]
+    # Calculate each tenant's cost based on their consumption and unit price
+    costs = []
+    for consumption in consumptions:
+        cost = consumption * unit_price
+        costs.append(cost)
     
-    # Deduct each tenant's share
-    for i, share in enumerate(shares):
-        cost = prev_recharge_amount * share
+    # Deduct each tenant's cost from their balance
+    for i, cost in enumerate(costs):
         synced_balances[i] -= cost
     
     # Display consumption and costs
     print("\n" + "="*60)
     print(" "*15 + "CONSUMPTION SINCE PREVIOUS RECHARGE")
     print("="*60)
-    print(f"{'Tenant':<20} {'Consumption (kWh)':<20} {'Cost (Rs.)':<15}")
-    print("-"*60)
-    for i, (name, consumption, share) in enumerate(zip(tenant_names, consumptions, shares)):
-        cost = prev_recharge_amount * share
-        print(f"{name:<20} {consumption:.2f} kWh{' '*11} Rs.{cost:.2f}")
+    print(f"{'Tenant':<20} {'Consumption (kWh)':<20} {'Cost (Rs.)':<15} {'Unit Price':<15}")
+    print("-"*80)
+    for i, (name, consumption, cost) in enumerate(zip(tenant_names, consumptions, costs)):
+        print(f"{name:<20} {consumption:.2f} kWh{' '*11} Rs.{cost:.2f}{' '*10} Rs.{unit_price:.2f}/kWh")
     print(f"{'TOTAL':<20} {total_consumption:.2f} kWh{' '*11} Rs.{prev_recharge_amount:.2f}")
     
     # Display synced balances
@@ -752,6 +756,11 @@ def sync_balances_with_previous_recharge(tenant_names, tenant_readings, tenant_b
     for name, balance in zip(tenant_names, synced_balances):
         balance_sign = "+" if balance > 0 else ""  # Add plus sign for positive balances
         print(f"{name:<20} {balance_sign}Rs.{balance:.2f}")
+    
+    # Verify that the sum of balances is zero
+    balance_sum = sum(synced_balances)
+    if abs(balance_sum) > 0.01:  # Allow for small rounding errors
+        print(f"\nWarning: Sum of balances is Rs.{balance_sum:.2f}, not zero as expected.")
     
     return synced_balances, True
 
