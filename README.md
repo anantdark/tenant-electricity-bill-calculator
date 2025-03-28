@@ -1,270 +1,91 @@
-# ⚡ Tenant Electricity Bill Calculator ⚡
+# Electricity Calculator for Tenant Recharges
 
-```ascii
- _______                       _      _______ _           _        _      
-|__   __|                     | |    |  ____| |         | |      (_)     
-   | | ___ _ __   __ _ _ __  | |_   | |__  | | ___  ___| |_ _ __ _  ___ 
-   | |/ _ \ '_ \ / _` | '_ \ | __|  |  __| | |/ _ \/ __| __| '__| |/ __|
-   | |  __/ | | | (_| | | | || |_   | |____| |  __/ (__| |_| |  | | (__ 
-   |_|\___|_| |_|\__,_|_| |_| \__|  |______|_|\___|\___|\__|_|  |_|\___|
-                                                                      
- ____  _ _ _    _____      _            _       _             
-|  _ \(_) | |  / ____|    | |          | |     | |            
-| |_) |_| | | | |     __ _| | ___ _   _| | __ _| |_ ___  _ __ 
-|  _ <| | | | | |    / _` | |/ __| | | | |/ _` | __/ _ \| '__|
-| |_) | | | | | |___| (_| | | (__| |_| | | (_| | || (_) | |   
-|____/|_|_|_|  \_____\__,_|_|\___|\__,_|_|\__,_|\__\___/|_|   
-```
+This application calculates tenant recharge balances based on electricity meter readings. It tracks electricity consumption for three tenants (Ground Floor, First Floor, and Second Floor), calculates charges based on consumption ratios, and manages recharge balances.
 
-A colorful, user-friendly command-line application to manage and calculate electricity bills for shared accommodations with multiple tenants.
+## Features
 
-## 🌟 Features
+- Track electricity meter readings for multiple tenants
+- Record readings for all tenants at once
+- Integrated recharge recording with readings
+- Calculate consumption since last reading
+- Accurately track consumption between recharges
+- Distribute electricity costs based on consumption ratios
+- Manage recharge balances for each tenant
+- View complete transaction history
+- Store all transactions in a CSV file for record keeping
+- Import sample data to quickly get started
 
-- 📊 Track electricity meter readings for multiple tenants
-- 💰 Record electricity recharges and automatically distribute costs
-- 📈 Calculate consumption based on meter readings
-- 💸 Maintain balance sheets for each tenant
-- 📝 Keep transaction history for all readings and recharges
-- 📱 View tenant dashboard with current balances and recommendations
-- 🗓️ Support for custom dates when recording readings or recharges
+## How It Works
 
-## 📋 Table of Contents
+The application is based on the following principles:
 
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [Examples](#-examples)
-- [How It Works](#-how-it-works)
-- [Data Storage](#-data-storage)
-- [Tips](#-tips)
-- [Contributing](#-contributing)
-- [License](#-license)
+1. Each tenant has a meter reading and a balance
+2. When new readings are added for all tenants, consumption is calculated (difference from the previous reading)
+3. After adding all readings, a recharge is recorded for one tenant and added to their balance
+4. When calculating charges:
+   - The application uses the readings from just before the last recharge as the baseline
+   - It calculates consumption between those readings and the current readings
+   - The total consumption for all tenants is calculated
+   - Each tenant's share is determined based on their consumption ratio
+   - The last recharge amount is deducted from all tenants' balances proportionally to their consumption
 
-## 🔌 Installation
+For example:
+- Initial readings: Tenant A: 1000, Tenant B: 2000, Tenant C: 3000
+- Tenant A recharges Rs.1200
+- Later readings: Tenant A: 1020, Tenant B: 2030, Tenant C: 3050
+- When the next recharge occurs:
+  - The application calculates consumption since the readings before the last recharge:
+    - Tenant A: 20 units, Tenant B: 30 units, Tenant C: 50 units (total 100 units)
+  - Tenant A's balance will have Rs.240 deducted (20% of last recharge)
+  - Tenant B's balance will have Rs.360 deducted (30% of last recharge)
+  - Tenant C's balance will have Rs.600 deducted (50% of last recharge)
 
-### Prerequisites
+## Usage
 
-- Python 3.6 or higher
-- pip (Python package installer)
-
-### Setup
-
-1. Clone this repository or download the source code:
-
-```bash
-git clone https://github.com/yourusername/tenant-electricity-bill-calculator.git
-cd tenant-electricity-bill-calculator
-```
-
-2. Install the required dependencies:
-
-```bash
-pip install colorama
-```
-
-## 🚀 Usage
-
-Run the application by executing the main script:
+### Running the Application
 
 ```bash
 python main.py
 ```
 
-This will display the main menu with the following options:
+When first starting the application with no existing data, you'll be prompted to import sample data from the provided `sample_transactions.csv` file. This will pre-fill the system with starting meter readings and a sample recharge.
 
-```
-============================================================
-               ELECTRICITY BILLING SYSTEM
-============================================================
-Current time: 2023-07-15 14:30:45
+### Main Menu Options
 
-1. Enter new meter readings
-2. Record a recharge
-3. View transaction history
-4. View tenant dashboard
-5. Exit
+1. **Record Readings and Recharge**: Record meter readings for all tenants and then add a recharge
+2. **Display Current State**: Show current balances, meter readings, and consumption
+3. **View Transaction History**: Display a history of all readings and recharges
+4. **Exit**: Quit the application
 
-Enter your choice (1-5):
-```
+### Workflow Example
 
-## 📝 Examples
+1. Initialize with starting meter readings for all tenants (or import sample data)
+2. Use option 1 to record new readings for all tenants and add a recharge
+3. The application will:
+   - Record the new meter readings for all tenants
+   - Calculate consumption since the readings before the last recharge
+   - Deduct from each tenant's balance based on their consumption ratio of the previous recharge amount
+   - Add the new recharge amount to the specified tenant's balance
+   - Store the current readings as the new baseline for the next calculation
 
-### Initial Setup
+## Data Storage
 
-When you run the application for the first time, you'll need to enter the initial meter readings for each tenant. These will serve as the baseline for future consumption calculations.
+The application stores all transactions in a CSV file named `transactions.csv` with the following columns:
 
-### Recording Meter Readings
+- **Type**: READING or RECHARGE
+- **Timestamp**: Date and time of the transaction
+- **Tenant**: Name of the tenant
+- **Reading/Amount**: Meter reading value or recharge amount
+- **Consumption**: Calculated consumption (for readings only)
+- **Balances**: Current balances for all tenants at the time of the transaction
 
-```
-============================================================
-               ELECTRICITY METER READING INPUT
-============================================================
+## Sample Data
 
-Enter current meter readings:
-Ground Floor current reading (previous: 1000.00): 1050.00
-First Floor current reading (previous: 2000.00): 2080.00
-Second Floor current reading (previous: 3000.00): 3070.00
+The application includes a `sample_transactions.csv` file with initial data to help you get started:
+- Initial meter readings for all three tenants
+- A sample recharge of Rs.1200 for the First Floor tenant
 
-Do you want to record a recharge with these readings? (y/n): y
+## Requirements
 
-Enter the recharge information:
-Recharge amount (Rs.): 1000
-Which tenant paid for the recharge (1-3)? 2
-```
-
-After entering the readings and recharge information, the application will display:
-
-```
-============================================================
-               ELECTRICITY CONSUMPTION SUMMARY
-============================================================
-Tenant               Consumption (kWh)    Cost (Rs.)   
-------------------------------------------------------------
-Ground Floor         50.00 kWh           Rs.250.00
-First Floor          80.00 kWh           Rs.400.00
-Second Floor         70.00 kWh           Rs.350.00
-TOTAL                200.00 kWh          Rs.1000.00
-
-============================================================
-                    CURRENT BALANCES
-============================================================
-Tenant               Balance (Rs.)    Status      
-------------------------------------------------------------
-Ground Floor         -Rs.250.00       
-First Floor          +Rs.600.00       PAID
-Second Floor         -Rs.350.00       
-
-============================================================
-RECOMMENDATION: Second Floor should pay the next recharge.
-============================================================
-```
-
-### Recording a Recharge Only
-
-You can also record a recharge without entering new meter readings:
-
-```
-============================================================
-               ELECTRICITY RECHARGE INPUT
-============================================================
-
-Current balances:
-1. Ground Floor: Balance = Rs.-250.00
-2. First Floor: Balance = Rs.600.00
-3. Second Floor: Balance = Rs.-350.00
-
-Enter the recharge information:
-Recharge amount (Rs.): 500
-Which tenant paid for the recharge (1-3)? 3
-```
-
-### Viewing Transaction History
-
-The application keeps a detailed history of all readings and recharges:
-
-```
-============================================================
-                  TRANSACTION HISTORY
-============================================================
-
-Date: 2023-07-01 10:15:30
-Type: READING
-Tenant: Ground Floor
-Reading: 1000.00
-Consumption: 0.00 kWh
-
-Date: 2023-07-01 10:15:30
-Type: READING
-Tenant: First Floor
-Reading: 2000.00
-Consumption: 0.00 kWh
-
-...
-
-Date: 2023-07-15 14:30:45
-Type: RECHARGE
-Tenant: First Floor
-Amount: Rs.1000.00
-Balances: Ground Floor: Rs.-250.00; First Floor: Rs.600.00; Second Floor: Rs.-350.00
-```
-
-### Tenant Dashboard
-
-The dashboard provides a quick overview of the current status:
-
-```
-============================================================
-                    TENANT DASHBOARD
-============================================================
-
-Current balances:
-Ground Floor: -Rs.250.00
-First Floor: +Rs.600.00
-Second Floor: -Rs.350.00
-
-Last recharge: Rs.1000.00 by First Floor on 2023-07-15 14:30:45
-Last meter readings:
-Ground Floor: 1050.00 on 2023-07-15 14:30:45
-First Floor: 2080.00 on 2023-07-15 14:30:45
-Second Floor: 3070.00 on 2023-07-15 14:30:45
-
-Recommendation: Second Floor should pay the next recharge.
-```
-
-## 🔍 How It Works
-
-The application works on a simple principle:
-
-1. **Meter Readings**: Each tenant's electricity consumption is tracked through meter readings.
-
-2. **Consumption Calculation**: The application calculates consumption by subtracting the previous reading from the current reading.
-
-3. **Cost Distribution**: When a recharge is recorded, the cost is distributed proportionally based on each tenant's consumption.
-
-4. **Balance Tracking**: The application maintains a balance for each tenant:
-   - Negative balance means the tenant owes money
-   - Positive balance means the tenant has credit
-
-5. **Recommendations**: The system recommends which tenant should pay for the next recharge based on who has the most negative balance.
-
-## 💾 Data Storage
-
-All data is stored in CSV format in the `electricity_data` directory:
-
-- `transactions.csv`: Contains all meter readings and recharges with timestamps
-
-The application automatically creates this directory and file if they don't exist.
-
-## 💡 Tips
-
-- **Regular Readings**: For the most accurate cost distribution, enter meter readings regularly (e.g., monthly).
-  
-- **Recharge with Readings**: It's best to record a recharge at the same time as entering new meter readings.
-  
-- **Custom Dates**: If you forgot to enter readings on the actual date, you can use the custom date feature.
-  
-- **Backup Data**: Occasionally backup the `electricity_data` directory to prevent data loss.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to submit issues or pull requests.
-
-## 📄 License
-
-This project is licensed under the GNU General Public License v3.0 (GPLv3) - a copyleft license that requires anyone who distributes your code or a derivative work to make the source available under the same terms.
-
-Key points of GPLv3:
-- You can use, modify, and distribute the software freely
-- If you distribute modified versions, you must make your source modifications available
-- Changes made must be tracked and dated
-- The license prevents the software from being incorporated into proprietary programs
-
-For more details, see the [GNU GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.en.html).
-
-```ascii
- _____ _                 _          __             _   _      _             
-|_   _| |__   __ _ _ __ | | _____  / _| ___  _ __ | | | |___ (_)_ __   __ _ 
-  | | | '_ \ / _` | '_ \| |/ / __|| |_ / _ \| '__|| | | / __|| | '_ \ / _` |
-  | | | | | | (_| | | | |   <\__ \|  _| (_) | |   | |_| \__ \| | | | | (_| |
-  |_| |_| |_|\__,_|_| |_|_|\_\___/|_|  \___/|_|    \___/|___/|_|_| |_|\__, |
-                                                                       |___/ 
-```
+- Python 3.6 or higher
+- Standard Python libraries (csv, os, datetime, decimal) 
