@@ -1,0 +1,140 @@
+import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+
+def parse_currency(val):
+    try:
+        return float(str(val).replace("Rs.", "").replace(",", ""))
+    except:
+        return 0.0
+
+def csv_to_pdf_with_highlights(csv_file, pdf_file):
+    df = pd.read_csv(csv_file)
+
+    col_width = 1.5 * inch
+    row_height = 0.4 * inch
+    margin = 0.5 * inch
+
+    columns = list(df.columns)
+    num_cols = len(columns)
+    num_rows = len(df)
+
+    # Dynamic page size
+    page_width = margin * 2 + num_cols * col_width
+    page_height = margin * 2 + (num_rows + 1) * row_height  # +1 for header
+
+    c = canvas.Canvas(pdf_file, pagesize=(page_width, page_height))
+
+    # Starting positions
+    y_start = page_height - margin
+    x_start = margin
+
+    # Draw header
+    y = y_start
+    for i, col in enumerate(columns):
+        x = x_start + i * col_width
+        c.setFillColor(colors.lightgrey)
+        c.rect(x, y - row_height, col_width, row_height, fill=1)
+        c.setFillColor(colors.black)
+        c.drawString(x + 5, y - row_height + 5, str(col))
+
+    # Draw data rows
+    for row_idx, row in df.iterrows():
+        y = y_start - (row_idx + 1) * row_height
+
+        # Determine fill color for READING rows
+        row_type = str(row['Type']).strip().upper()
+        tenant = str(row['Tenant']).strip().lower()
+        fill_color = None
+
+        if row_type == 'READING':
+            if tenant == 'ground floor':
+                fill_color = colors.lavender
+            elif tenant == 'first floor':
+                fill_color = colors.lightblue
+            elif tenant == 'second floor':
+                fill_color = colors.lightgreen
+
+        # For RECHARGE rows, find lowest of the three Rs. columns
+        recharge_min_col_index = -1
+        if row_type == 'RECHARGE':
+            value_cols = ['Ground Floor', ' First Floor', ' Second Floor']
+            values = [parse_currency(row.get(col)) for col in value_cols]
+            min_index = values.index(min(values)) if values else -1
+            recharge_min_col_index = [df.columns.get_loc(col) for col in value_cols][min_index]
+
+        # Draw each cell
+        for col_idx, col in enumerate(columns):
+            x = x_start + col_idx * col_width
+            cell_value = str(row[col])
+
+            # Highlight if recharge min value column
+            if row_type == 'RECHARGE' and col_idx == recharge_min_col_index:
+                c.setFillColor(colors.red)
+                c.rect(x, y - row_height, col_width, row_height, fill=1)
+                c.setFillColor(colors.white)
+            elif fill_color:
+                c.setFillColor(fill_color)
+                c.rect(x, y - row_height, col_width, row_height, fill=1)
+                c.setFillColor(colors.black)
+            else:
+                c.setFillColor(colors.black)
+                c.rect(x, y - row_height, col_width, row_height, fill=0)
+
+            # Draw text
+            c.drawString(x + 5, y - row_height + 5, cell_value)
+
+    c.save()
+
+# Run the function
+csv_to_pdf_with_highlights("transactions.csv", "transactions.pdf")
+
+# import pandas as pd
+# from reportlab.lib.pagesizes import landscape
+# from reportlab.pdfgen import canvas
+# from reportlab.lib.units import inch
+# from reportlab.lib import colors
+#
+# def csv_to_pdf_with_table(csv_file, pdf_file):
+#     df = pd.read_csv(csv_file)
+#
+#     col_width = 1.5 * inch  # Width per column (can be customized)
+#     row_height = 0.4 * inch
+#     margin = 0.5 * inch
+#
+#     num_cols = len(df.columns)
+#     num_rows = len(df)
+#
+#     # Calculate required page size
+#     page_width = margin * 2 + num_cols * col_width
+#     page_height = margin * 2 + (num_rows + 1) * row_height  # +1 for header row
+#
+#     c = canvas.Canvas(pdf_file, pagesize=(page_width, page_height))
+#
+#     # Start at top-left corner
+#     y_start = page_height - margin
+#     x_start = margin
+#
+#     # Header row
+#     y = y_start
+#     for i, col in enumerate(df.columns):
+#         x = x_start + i * col_width
+#         c.setFillColor(colors.lightgrey)
+#         c.rect(x, y - row_height, col_width, row_height, fill=1)
+#         c.setFillColor(colors.black)
+#         c.drawString(x + 5, y - row_height + 5, str(col))
+#
+#     # Data rows
+#     for row_idx, row in enumerate(df.itertuples(index=False)):
+#         y = y_start - (row_idx + 1) * row_height
+#         for col_idx, value in enumerate(row):
+#             x = x_start + col_idx * col_width
+#             c.rect(x, y - row_height, col_width, row_height, fill=0)
+#             c.drawString(x + 5, y - row_height + 5, str(value))
+#
+#     c.save()
+#
+# # Usage
+# csv_to_pdf_with_table("transactions.csv", "transactions.pdf")
