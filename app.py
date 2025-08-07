@@ -32,6 +32,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.secret_key = 'change-me'
 
+# Create directories after Flask app initialization
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
@@ -122,10 +123,17 @@ def list_available_csvs():
 
 def ensure_csv_with_header(path: str):
     if not os.path.exists(path):
-        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-        with open(path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(CSV_HEADERS)
+        # Only create file if we can write to the directory
+        dir_path = os.path.dirname(path) or '.'
+        try:
+            os.makedirs(dir_path, exist_ok=True)
+            with open(path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(CSV_HEADERS)
+        except (OSError, PermissionError):
+            # If we can't create the file (e.g., on read-only filesystem like Vercel),
+            # just skip creation - the route should handle missing files gracefully
+            pass
 
 
 def validate_csv_file(path: str) -> str:
@@ -903,36 +911,78 @@ def revert():
 
 @app.route('/browse')
 def browse():
-    csvs = list_available_csvs()
-    csv_path = request.args.get('csv_path') or get_current_csv()
-    set_current_csv(csv_path)
-    ensure_csv_with_header(csv_path)
-    with open(csv_path, 'r', newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        header = next(reader, None) or CSV_HEADERS
-        all_rows = list(reader)
+    try:
+        csvs = list_available_csvs()
+        csv_path = request.args.get('csv_path') or get_current_csv()
+        set_current_csv(csv_path)
+        
+        # Check if file exists before trying to read it
+        if not os.path.exists(csv_path):
+            flash_with_status(f'CSV file not found: {csv_path}', 'error')
+            return render_template('browse.html',
+                                 csvs=csvs,
+                                 csv_path=csv_path,
+                                 rows=[],
+                                 page=1,
+                                 page_size=25,
+                                 total=0,
+                                 total_pages=1,
+                                 q='',
+                                 type_filter='all',
+                                 sort_by='Timestamp',
+                                 sort_order='desc',
+                                 localmode=session.get('localmode', False))
+        
+        ensure_csv_with_header(csv_path)
+        
+        with open(csv_path, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None) or CSV_HEADERS
+            all_rows = list(reader)
+    except Exception as e:
+        app.logger.exception(f'Error in browse route: {e}')
+        flash_with_status(f'Error loading CSV data: {str(e)}', 'error')
+        return render_template('browse.html',
+                             csvs=[],
+                             csv_path='',
+                             rows=[],
+                             page=1,
+                             page_size=25,
+                             total=0,
+                             total_pages=1,
+                             q='',
+                             type_filter='all',
+                             sort_by='Timestamp',
+                             sort_order='desc',
+                             localmode=session.get('localmode', False))
+    # Continue with processing only if we successfully got the rows
     q = (request.args.get('q') or '').strip().lower()
     type_filter = (request.args.get('type') or 'all').upper()
     sort_by = (request.args.get('sort_by') or 'Timestamp').strip()
     sort_order = (request.args.get('sort_order') or 'desc').lower()
+    
     def match(row):
         if q and not any(q in (col or '').lower() for col in row):
             return False
         if type_filter in {'READING','RECHARGE'} and row[0].upper() != type_filter:
             return False
         return True
+    
     all_rows = [row for row in all_rows if match(row)]
+    
     # sorting
     def key_ts(val: str):
         try:
             return datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
         except Exception:
             return datetime.min
+    
     def key_num(val: str):
         try:
             return float(val)
         except Exception:
             return float('-inf')
+    
     def sort_key(row):
         if sort_by.lower() == 'timestamp':
             return key_ts(row[1])
@@ -945,7 +995,9 @@ def browse():
         if sort_by.lower() == 'consumption':
             return key_num(row[4])
         return key_ts(row[1])
+    
     all_rows.sort(key=sort_key, reverse=(sort_order == 'desc'))
+    
     try:
         page = max(1, int(request.args.get('page', '1')))
     except ValueError:
@@ -954,13 +1006,16 @@ def browse():
         page_size = max(1, min(200, int(request.args.get('page_size', '25'))))
     except ValueError:
         page_size = 25
+    
     total = len(all_rows)
     total_pages = max(1, (total + page_size - 1) // page_size)
     if page > total_pages:
         page = total_pages
+    
     start = (page - 1) * page_size
     end = start + page_size
     rows = all_rows[start:end]
+    
     enriched_rows: List[Dict] = []
     for r in rows:
         balances_map = {t: '' for t in TENANTS}
@@ -977,19 +1032,25 @@ def browse():
             'Type': r[0], 'Timestamp': r[1], 'Tenant': r[2], 'ReadingAmount': r[3], 'Consumption': r[4],
             'Ground': balances_map['Ground Floor'], 'First': balances_map['First Floor'], 'Second': balances_map['Second Floor']
         })
+    
     return render_template('browse.html', csvs=csvs, csv_path=csv_path, rows=enriched_rows, page=page, page_size=page_size, total=total, total_pages=total_pages, q=q, type_filter=type_filter, sort_by=sort_by, sort_order=sort_order, localmode=session.get('localmode', False))
 
 
-# For Vercel deployment, we need to modify file operations to use /tmp
-if os.environ.get('VERCEL'):
-    app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
-    app.config['OUTPUT_FOLDER'] = '/tmp/outputs'
-    UPLOAD_FOLDER = '/tmp/uploads'
-    OUTPUT_FOLDER = '/tmp/outputs'
+@app.route('/favicon.ico')
+@app.route('/favicon.png')
+def favicon():
+    """Serve a simple favicon to prevent 404 errors"""
+    # Return a simple 1x1 pixel transparent PNG as base64
+    import base64
+    from flask import Response
     
-    # Ensure tmp directories exist
-    os.makedirs('/tmp/uploads', exist_ok=True)
-    os.makedirs('/tmp/outputs', exist_ok=True)
+    # 1x1 transparent PNG in base64
+    transparent_png = base64.b64decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+    )
+    
+    return Response(transparent_png, mimetype='image/png')
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

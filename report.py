@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+import tempfile
 
 # Cutoff date variable - modify this to filter records
 # Set to None to include all records, or specify a date in YYYY-MM-DD format
@@ -157,7 +158,10 @@ def generate_pdf_from_original_csv(original_csv, pdf_file, cutoff_date_param=Non
     if cutoff_date_param is not None:
         cutoff_date = cutoff_date_param
     
-    temp_csv = "temp_output.csv"
+    # Use temporary file in appropriate directory (Vercel-compatible)
+    temp_dir = '/tmp' if os.environ.get('VERCEL') else '.'
+    temp_csv = os.path.join(temp_dir, "temp_output.csv")
+    
     try:
         transform_csv(original_csv, temp_csv)
         csv_to_pdf_with_highlights(temp_csv, pdf_file)
