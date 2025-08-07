@@ -16,14 +16,15 @@
         <a class="btn" href="{{ url_for('index') }}">Home</a>
         <a class="btn" href="{{ url_for('record') }}">Record</a>
         <a class="btn" href="{{ url_for('revert') }}">Revert</a>
-        <label class="switch">
-          <input type="checkbox" id="themeToggle">
-          <span>Dark mode</span>
-        </label>
       </div>
     </header>
 
     <form class="card" method="GET">
+      <div class="card-header centered">
+        <h3>Search & Filter</h3>
+        <p class="card-subtitle">Find and sort records using various criteria</p>
+      </div>
+      
       <div class="grid-2">
         <div class="field">
           <label for="csv_path">CSV</label>
@@ -77,6 +78,11 @@
     </form>
 
     <div class="card">
+      <div class="card-header centered">
+        <h3>Transaction Records</h3>
+        <p class="card-subtitle">View your electricity readings and recharge history</p>
+      </div>
+      
       <div class="table-wrap">
         <div class="table">
           <div class="row header">
@@ -112,17 +118,10 @@
   </div>
 
   <script>
-    const toggle = document.getElementById('themeToggle');
+    // Theme management - check for existing preference
     const root = document.documentElement;
     const preferLight = localStorage.getItem('theme') === 'light';
     if (preferLight) root.classList.add('light');
-    if (toggle) {
-      toggle.checked = preferLight;
-      toggle.addEventListener('change', () => {
-        root.classList.toggle('light');
-        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
-      });
-    }
   </script>
 </body>
 </html> 

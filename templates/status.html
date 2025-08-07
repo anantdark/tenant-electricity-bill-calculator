@@ -17,15 +17,15 @@
         <a class="btn" href="{{ url_for('record') }}">Record</a>
         <a class="btn" href="{{ url_for('revert') }}">Revert</a>
         <a class="btn" href="{{ url_for('browse') }}">Browse</a>
-        <label class="switch">
-          <input type="checkbox" id="themeToggle">
-          <span>Dark mode</span>
-        </label>
       </div>
     </header>
 
     <div class="card">
-      <h3>Balances</h3>
+      <div class="card-header centered">
+        <h3>Current Balances</h3>
+        <p class="card-subtitle">Outstanding amounts per tenant</p>
+      </div>
+      
       <ul>
         {% for tenant, balance in data.balances.items() %}
           <li>{{ tenant }}: {{ balance }}</li>
@@ -34,7 +34,11 @@
     </div>
 
     <div class="card" style="margin-top:12px;">
-      <h3>Last Readings</h3>
+      <div class="card-header centered">
+        <h3>Latest Meter Readings</h3>
+        <p class="card-subtitle">Most recent electricity meter values</p>
+      </div>
+      
       <ul>
         {% for tenant, reading in data.last_readings.items() %}
           <li>{{ tenant }}: {{ reading }}</li>
@@ -43,7 +47,11 @@
     </div>
 
     <div class="card" style="margin-top:12px;">
-      <h3>Last Recharge</h3>
+      <div class="card-header centered">
+        <h3>Recent Recharge</h3>
+        <p class="card-subtitle">Last electricity recharge transaction</p>
+      </div>
+      
       <p>Amount: {{ data.last_recharge_amount }}</p>
       <p>Tenant: {{ data.last_recharge_tenant }}</p>
     </div>
@@ -54,17 +62,10 @@
     </div>
   </div>
   <script>
-    const toggle = document.getElementById('themeToggle');
+    // Theme management - check for existing preference
     const root = document.documentElement;
     const preferLight = localStorage.getItem('theme') === 'light';
     if (preferLight) root.classList.add('light');
-    if (toggle) {
-      toggle.checked = preferLight;
-      toggle.addEventListener('change', () => {
-        root.classList.toggle('light');
-        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
-      });
-    }
   </script>
 </body>
 </html> 

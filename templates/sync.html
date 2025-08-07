@@ -30,6 +30,11 @@
     {% endwith %}
 
     <div class="card">
+      <div class="card-header centered">
+        <h3>Repository Status</h3>
+        <p class="card-subtitle">Git repository information and sync operations</p>
+      </div>
+      
       <div id="sync-status">
         {% if not status.has_repo %}
           <p>No git repository detected in this folder.</p>
@@ -52,7 +57,11 @@
         <button class="btn" name="action" value="remove_remote" type="submit">Remove Remote</button>
       </form>
       <div class="card" style="margin-top:12px;">
-        <h3 style="margin-top:0;">Commit changes</h3>
+        <div class="card-header centered">
+          <h3>Commit Changes</h3>
+          <p class="card-subtitle">Add and commit your local changes to git</p>
+        </div>
+        
         <form method="POST" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <input class="input-rounded" type="text" name="commit_msg" placeholder="Commit message (default: Update {{ default_commit_ts }})" style="flex:1; min-width:280px;">
           <button class="btn" name="action" value="commit" type="submit">Commit</button>

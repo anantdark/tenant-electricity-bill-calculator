@@ -16,10 +16,6 @@
         <a class="btn" href="{{ url_for('record') }}">Record</a>
         <a class="btn" href="{{ url_for('index') }}">Print</a>
         <a class="btn" href="{{ url_for('browse') }}">Browse</a>
-        <label class="switch">
-          <input type="checkbox" id="themeToggle">
-          <span>Dark mode</span>
-        </label>
       </div>
     </header>
 
@@ -34,6 +30,11 @@
     {% endwith %}
 
     <div class="card">
+      <div class="card-header centered">
+        <h3>Revert Confirmation</h3>
+        <p class="card-subtitle">Review and confirm deletion of the most recent timestamp group</p>
+      </div>
+      
       {% if preview %}
         <p>The following rows will be deleted (timestamp group: <strong>{{ ts }}</strong>):</p>
         <div class="table">
@@ -58,17 +59,10 @@
     </div>
   </div>
   <script>
-    const toggle = document.getElementById('themeToggle');
+    // Theme management - check for existing preference
     const root = document.documentElement;
     const preferLight = localStorage.getItem('theme') === 'light';
     if (preferLight) root.classList.add('light');
-    if (toggle) {
-      toggle.checked = preferLight;
-      toggle.addEventListener('change', () => {
-        root.classList.toggle('light');
-        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
-      });
-    }
   </script>
 </body>
 </html> 

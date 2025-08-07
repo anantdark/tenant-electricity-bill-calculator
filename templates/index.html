@@ -12,25 +12,17 @@
     <header>
       <h1>Tenant Electricity Report</h1>
       <p class="subtitle">Upload your transactions CSV or pick an existing one to generate a styled PDF.</p>
-      <div class="actions">
-        <a class="btn" href="{{ url_for('record') }}">Record</a>
-        <a class="btn" href="{{ url_for('browse') }}">Browse</a>
-        <a class="btn" href="{{ url_for('sync') }}">Sync</a>
-        <a class="btn" href="{{ url_for('config_page') }}">Config</a>
-        <label class="switch">
-          <input type="checkbox" id="themeToggle">
-          <span>Dark mode</span>
-        </label>
-        <label class="switch" title="Local mode disables Git operations and ensures local persistence">
-          <input type="checkbox" id="localToggle" {% if localmode %}checked{% endif %}>
-          <span>Local mode</span>
-        </label>
+      <div class="actions actions-expanded">
+        <a class="btn btn-expanded" href="{{ url_for('record') }}">Record</a>
+        <a class="btn btn-expanded" href="{{ url_for('browse') }}">Browse</a>
+        <a class="btn btn-expanded" href="{{ url_for('sync') }}">Sync</a>
+        <a class="btn btn-expanded" href="{{ url_for('config_page') }}">Settings</a>
       </div>
     </header>
 
     {% if status_data %}
-    <div class="ticker ticker-large">
-      <div class="ticker-row">
+    <div class="ticker ticker-large ticker-expandable" id="statusTicker">
+      <div class="ticker-row ticker-main" onclick="toggleStatusDetails()">
         <span class="pill">CSV: {{ current_csv }}</span>
         <span class="pill pill-ground">Ground: {{ status_data.balances['Ground Floor'] }}</span>
         <span class="pill pill-first">First: {{ status_data.balances['First Floor'] }}</span>
@@ -39,6 +31,53 @@
         {% if next_recharge %}
           <span class="pill pill-warning">Next recharge suggested: {{ next_recharge }}</span>
         {% endif %}
+        <span class="pill pill-expand" id="expandIndicator">▼ Details</span>
+      </div>
+      
+      <div class="ticker-details" id="statusDetails" style="display: none;">
+        <div class="details-section">
+          <h4>Last Readings</h4>
+          <div class="details-grid">
+            {% for tenant, reading in status_data.last_readings.items() %}
+              <div class="detail-item">
+                <span class="detail-label">{{ tenant }}:</span>
+                <span class="detail-value">{{ reading }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <div class="details-section">
+          <h4>Current Balances</h4>
+          <div class="details-grid">
+            {% for tenant, balance in status_data.balances.items() %}
+              <div class="detail-item">
+                <span class="detail-label">{{ tenant }}:</span>
+                <span class="detail-value">{{ balance }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <div class="details-section">
+          <h4>Recharge Information</h4>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">Last Amount:</span>
+              <span class="detail-value">{{ status_data.last_recharge_amount }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Last Tenant:</span>
+              <span class="detail-value">{{ status_data.last_recharge_tenant }}</span>
+            </div>
+            {% if next_recharge %}
+            <div class="detail-item">
+              <span class="detail-label">Next Suggested:</span>
+              <span class="detail-value detail-warning">{{ next_recharge }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
     {% endif %}
@@ -53,27 +92,24 @@
       {% endif %}
     {% endwith %}
 
-    <form class="card" method="POST" enctype="multipart/form-data">
-      <div class="grid-2">
-        <div class="field">
-          <label for="existing_csv">CSV Source</label>
-          <select id="existing_csv" name="existing_csv">
-            <option value="">Use current ({{ current_csv }})</option>
-            {% for c in csvs %}
-              <option value="{{ c.path }}" {% if c.path == current_csv %}selected{% endif %}>{{ c.label }}</option>
-            {% endfor %}
-            <option value="upload">Upload…</option>
-          </select>
-        </div>
-        <div class="field" id="upload_field" style="display:none;">
-          <label for="file">Choose CSV</label>
-          <label class="file-input">
-            <input id="file" name="file" type="file" accept=".csv">
-            <span>Select file…</span>
-          </label>
-        </div>
+    {% if csv_error %}
+    <div class="card error-card">
+      <div class="card-header centered">
+        <h3>Configuration Error</h3>
+        <p class="card-subtitle error-text">CSV file configuration issue detected</p>
       </div>
-
+      <div class="error-message">
+        <p>{{ csv_error }}</p>
+        <p>Please go to <a href="{{ url_for('config_page') }}" class="error-link">Settings</a> to configure a valid CSV file.</p>
+      </div>
+    </div>
+    {% else %}
+    <form class="card" method="POST" enctype="multipart/form-data">
+      <div class="card-header centered">
+        <h3>Generate Report</h3>
+        <p class="card-subtitle">Create a styled PDF report from your transaction data</p>
+      </div>
+      
       <div class="field">
         <label for="cutoff_date">Cutoff Date (optional)</label>
         <input id="cutoff_date" name="cutoff_date" type="date" placeholder="YYYY-MM-DD">
@@ -82,10 +118,14 @@
 
       <button class="btn primary" type="submit">Generate PDF</button>
     </form>
+    {% endif %}
 
     {% if metrics %}
     <div class="card" style="margin-top:12px;">
-      <h3 style="margin:0 0 8px;">Usage metrics</h3>
+      <div class="card-header centered">
+        <h3>Usage Metrics</h3>
+        <p class="card-subtitle">Overview of electricity consumption and costs</p>
+      </div>
       <div class="metrics-grid">
         <div class="metric"><div class="metric-label">Total Usage</div><div class="metric-value">{{ '%.2f'|format(metrics.total_usage) }} units</div></div>
         <div class="metric"><div class="metric-label">Readings</div><div class="metric-value">{{ metrics.count_readings }}</div></div>
@@ -149,38 +189,26 @@
  
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    const fileInput = document.getElementById('file');
-    const fileLabel = document.querySelector('.file-input span');
-    const sourceSel = document.getElementById('existing_csv');
-    const uploadField = document.getElementById('upload_field');
-    if (fileInput) {
-      fileInput.addEventListener('change', () => {
-        const name = fileInput.files && fileInput.files[0] ? fileInput.files[0].name : 'Select file…';
-        fileLabel.textContent = name;
-      });
-    }
-        function syncUploadField(){
-      uploadField.style.display = sourceSel && sourceSel.value === 'upload' ? 'block' : 'none';
-    }
-    if (sourceSel){ sourceSel.addEventListener('change', syncUploadField); syncUploadField(); }
-   
-    const toggle = document.getElementById('themeToggle');
+    // Theme management - check for existing preference
     const root = document.documentElement;
     const preferLight = localStorage.getItem('theme') === 'light';
     if (preferLight) root.classList.add('light');
-    if (toggle) {
-      toggle.checked = preferLight;
-      toggle.addEventListener('change', () => {
-        root.classList.toggle('light');
-        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
-      });
-    }
-    const localToggle = document.getElementById('localToggle');
-    if (localToggle){
-      localToggle.addEventListener('change', async () => {
-        await fetch("{{ url_for('toggle_localmode') }}", {method:'POST'});
-        location.reload();
-      });
+
+    // Status ticker toggle functionality
+    function toggleStatusDetails() {
+      const details = document.getElementById('statusDetails');
+      const indicator = document.getElementById('expandIndicator');
+      const ticker = document.getElementById('statusTicker');
+      
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        indicator.textContent = '▲ Click to collapse';
+        ticker.classList.add('expanded');
+      } else {
+        details.style.display = 'none';
+        indicator.textContent = '▼ Click for details';
+        ticker.classList.remove('expanded');
+      }
     }
 
     // Charts

@@ -122,6 +122,42 @@ def ensure_csv_with_header(path: str):
             writer.writerow(CSV_HEADERS)
 
 
+def validate_csv_file(path: str) -> str:
+    """Validate CSV file and return error message if invalid, None if valid"""
+    if not path or not path.strip():
+        return "No CSV file configured. Please select a default CSV file in Settings."
+    
+    if not os.path.exists(path):
+        return f"CSV file not found: {path}. Please check the file path in Settings."
+    
+    try:
+        with open(path, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            
+            if not header:
+                return f"CSV file is empty or invalid: {path}"
+            
+            # Check if required columns exist
+            required_columns = set(CSV_HEADERS)
+            actual_columns = set(header)
+            
+            if not required_columns.issubset(actual_columns):
+                missing = required_columns - actual_columns
+                return f"CSV file is missing required columns: {', '.join(missing)}. Expected columns: {', '.join(CSV_HEADERS)}"
+            
+            # Check if we can read at least one row to ensure format is valid
+            try:
+                next(reader, None)  # Try to read one data row
+            except csv.Error as e:
+                return f"CSV file format is invalid: {e}"
+                
+    except Exception as e:
+        return f"Error reading CSV file: {e}"
+    
+    return None  # No errors
+
+
 def get_current_csv() -> str:
     cfg = load_config()
     cur = session.get('current_csv') or cfg.get('preferences', {}).get('csv_path')
@@ -307,6 +343,68 @@ class CsvCalculator:
             'last_recharge_tenant': self.last_recharge_tenant or 'N/A',
         }
 
+    def preview_last_group_for_revert(self) -> Tuple[str, List[Dict]]:
+        """Preview the last group of transactions that would be reverted"""
+        if not self.transactions:
+            return '', []
+        
+        # Find the last timestamp
+        last_timestamp = self.transactions[-1]['Timestamp']
+        
+        # Find all transactions with the same timestamp (same group)
+        preview_rows = []
+        for transaction in reversed(self.transactions):
+            if transaction['Timestamp'] == last_timestamp:
+                preview_rows.append(transaction)
+            else:
+                break
+        
+        # Reverse to show in chronological order
+        preview_rows.reverse()
+        
+        return last_timestamp, preview_rows
+
+    def revert_last_group(self) -> int:
+        """Revert the last group of transactions and return count of removed rows"""
+        if not self.transactions:
+            return 0
+        
+        # Find the last timestamp
+        last_timestamp = self.transactions[-1]['Timestamp']
+        
+        # Count how many transactions have this timestamp
+        count_to_remove = 0
+        for transaction in reversed(self.transactions):
+            if transaction['Timestamp'] == last_timestamp:
+                count_to_remove += 1
+            else:
+                break
+        
+        if count_to_remove == 0:
+            return 0
+        
+        # Read all rows from CSV
+        rows = []
+        with open(self.csv_path, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            rows = list(reader)
+        
+        # Remove the last count_to_remove rows
+        rows = rows[:-count_to_remove]
+        
+        # Write back to CSV
+        with open(self.csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if header:
+                writer.writerow(header)
+            writer.writerows(rows)
+        
+        # Reload the calculator state
+        self.load()
+        
+        return count_to_remove
+
 
 # Metrics
 
@@ -464,47 +562,46 @@ def compute_metrics(csv_path: str) -> Dict:
 # Index / dashboard
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # Get CSV path from config
+    default_csv = get_current_csv()
+    csv_error = validate_csv_file(default_csv)
+    
     if request.method == 'POST':
-        selected_csv = request.form.get('existing_csv') or ''
-        if selected_csv == 'upload':
-            file = request.files.get('file')
-            if not file or file.filename == '':
-                flash('Select a CSV to upload.')
-                return redirect(request.url)
-            if not allowed_file(file.filename):
-                flash('Only CSV files are allowed.')
-                return redirect(request.url)
-            filename = secure_filename(file.filename)
-            input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(input_path)
-        elif selected_csv:
-            input_path = selected_csv
-        else:
-            input_path = get_current_csv()
-        set_current_csv(input_path)
+        # If there's a CSV error, don't process the form
+        if csv_error:
+            flash('Cannot generate PDF: ' + csv_error)
+            return redirect(request.url)
+        
+        input_path = default_csv
         cutoff_str = request.form.get('cutoff_date') or ''
         cutoff_param = cutoff_str.strip() if cutoff_str.strip() else None
+        
         if cutoff_param is not None:
             try:
                 datetime.strptime(cutoff_param, '%Y-%m-%d')
             except ValueError:
                 flash('Cutoff date must be in YYYY-MM-DD format.')
                 return redirect(request.url)
+        
         output_pdf_name = os.path.splitext(os.path.basename(input_path))[0] + '.pdf'
         output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_pdf_name)
+        
         try:
             generate_pdf_from_original_csv(input_path, output_path, cutoff_param)
         except Exception as e:
             app.logger.exception('Failed to generate PDF')
             flash(f'Failed to generate PDF: {e}')
             return redirect(request.url)
+        
         return redirect(url_for('result', pdf_name=output_pdf_name))
-    csvs = list_available_csvs()
+    
+    # Prepare template data
     status_data = None
-    default_csv = get_current_csv()
     next_recharge = None
     metrics = None
-    if default_csv and os.path.exists(default_csv):
+    
+    # Only load data if CSV is valid
+    if not csv_error and default_csv and os.path.exists(default_csv):
         try:
             status_data = CsvCalculator(default_csv).current_status()
             metrics = compute_metrics(default_csv)
@@ -519,7 +616,14 @@ def index():
                 next_recharge = least_tenant
         except Exception:
             status_data = None
-    return render_template('index.html', csvs=csvs, status_data=status_data, current_csv=default_csv, localmode=session.get('localmode', False), next_recharge=next_recharge, metrics=metrics)
+    
+    return render_template('index.html',
+                         status_data=status_data,
+                         current_csv=default_csv,
+                         localmode=session.get('localmode', False),
+                         next_recharge=next_recharge,
+                         metrics=metrics,
+                         csv_error=csv_error)
 
 
 # Config
@@ -527,21 +631,67 @@ def index():
 def config_page():
     cfg = load_config()
     if request.method == 'POST':
+        # Handle form fields
         pat = request.form.get('git_pat', '').strip()
         default_csv = request.form.get('csv_path', '').strip()
+        
+        # Handle PAT token
         cfg.setdefault('git', {})
         if pat:
             cfg['git']['pat'] = pat
-        prefs = cfg.get('preferences', {})
-        if default_csv:
+        
+        # Handle regular CSV path selection (skip upload option since it's handled by AJAX)
+        if default_csv and default_csv != '__upload__':
+            prefs = cfg.get('preferences', {})
             prefs['csv_path'] = default_csv
+            cfg['preferences'] = prefs
             set_current_csv(default_csv)
-        cfg['preferences'] = prefs
+        
         save_config(cfg)
         flash('Configuration saved.')
         return redirect(url_for('config_page'))
     csvs = list_available_csvs()
     return render_template('config.html', cfg=cfg, csvs=csvs, current_csv=get_current_csv(), localmode=session.get('localmode', False))
+
+
+@app.route('/upload_csv', methods=['POST'])
+def upload_csv():
+    """API endpoint for direct CSV file uploads via AJAX"""
+    try:
+        uploaded_file = request.files.get('csv_file')
+        if not uploaded_file or not uploaded_file.filename:
+            return jsonify({'success': False, 'message': 'Please select a file to upload.'})
+        
+        if not allowed_file(uploaded_file.filename):
+            return jsonify({'success': False, 'message': 'Only CSV files are allowed for upload.'})
+        
+        filename = secure_filename(uploaded_file.filename)
+        if not filename.lower().endswith('.csv'):
+            filename += '.csv'
+        
+        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save the file
+        uploaded_file.save(upload_path)
+        
+        # Validate the uploaded CSV file
+        csv_error = validate_csv_file(upload_path)
+        if csv_error:
+            # Remove the invalid file
+            os.remove(upload_path)
+            return jsonify({'success': False, 'message': f'Uploaded file is invalid: {csv_error}'})
+        
+        # File is valid, set it as current CSV and update config
+        set_current_csv(upload_path)
+        
+        return jsonify({
+            'success': True,
+            'message': f'File "{filename}" uploaded successfully and set as current CSV.',
+            'file_path': upload_path
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Failed to upload file: {str(e)}'})
 
 
 # Sync utilities

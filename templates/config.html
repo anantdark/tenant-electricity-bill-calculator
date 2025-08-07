@@ -28,7 +28,12 @@
       {% endif %}
     {% endwith %}
 
-    <form class="card" method="POST">
+    <form class="card" method="POST" enctype="multipart/form-data">
+      <div class="card-header centered">
+        <h3>Application Settings</h3>
+        <p class="card-subtitle">Configure GitHub integration and default CSV preferences</p>
+      </div>
+      
       <div class="field">
         <label for="git_pat">GitHub Personal Access Token (for HTTPS remotes)</label>
         <input id="git_pat" name="git_pat" type="password" class="input-rounded" placeholder="Enter PAT (not committed; stored locally)">
@@ -42,12 +47,124 @@
             {% for c in csvs %}
               <option value="{{ c.path }}">{{ c.label }}</option>
             {% endfor %}
+            <option value="__upload__">📁 Upload new CSV file...</option>
           </select>
+          <!-- Hidden file input for uploading -->
+          <input id="csv_upload_hidden" type="file" accept=".csv" style="display: none;">
+          <div id="upload_status" style="display: none; margin-top: 10px;">
+            <small id="upload_message">Uploading...</small>
+          </div>
         </div>
+        <div class="field">
+          <label>Application Mode</label>
+          <label class="switch">
+            <input type="checkbox" id="localToggle" {% if localmode %}checked{% endif %}>
+            <span>Local Mode</span>
+          </label>
+          <small>Disables Git operations for local-only usage</small>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Theme Preference</label>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle">
+          <span>Dark Mode</span>
+        </label>
+        <small>Switch between dark and light themes</small>
       </div>
 
       <button class="btn primary" type="submit">Save Configuration</button>
     </form>
   </div>
+  
+  <script>
+    // Theme toggle functionality
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const preferLight = localStorage.getItem('theme') === 'light';
+    const preferDark = !preferLight; // Dark mode is default
+    
+    if (preferLight) root.classList.add('light');
+    
+    if (toggle) {
+      // Show toggle as ON (checked) for dark mode (default), OFF for light mode
+      toggle.checked = preferDark;
+      toggle.addEventListener('change', () => {
+        root.classList.toggle('light');
+        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+      });
+    }
+    
+    // Local mode toggle functionality
+    const localToggle = document.getElementById('localToggle');
+    if (localToggle){
+      localToggle.addEventListener('change', async () => {
+        await fetch("{{ url_for('toggle_localmode') }}", {method:'POST'});
+        location.reload();
+      });
+    }
+    
+    // CSV upload functionality - direct file picker
+    const csvSelect = document.getElementById('csv_path');
+    const hiddenFileInput = document.getElementById('csv_upload_hidden');
+    const uploadStatus = document.getElementById('upload_status');
+    const uploadMessage = document.getElementById('upload_message');
+    
+    if (csvSelect && hiddenFileInput) {
+      csvSelect.addEventListener('change', () => {
+        if (csvSelect.value === '__upload__') {
+          // Trigger file picker immediately
+          hiddenFileInput.click();
+        }
+      });
+      
+      hiddenFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+          // User cancelled file selection, reset dropdown
+          csvSelect.value = '';
+          return;
+        }
+        
+        // Show upload status
+        uploadStatus.style.display = 'block';
+        uploadMessage.textContent = 'Uploading...';
+        
+        // Create FormData and upload file
+        const formData = new FormData();
+        formData.append('csv_file', file);
+        
+        try {
+          const response = await fetch("{{ url_for('upload_csv') }}", {
+            method: 'POST',
+            body: formData
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            uploadMessage.textContent = result.message;
+            
+            // Refresh the page to update dropdown and current CSV
+            setTimeout(() => {
+              location.reload();
+            }, 1000);
+          } else {
+            uploadMessage.textContent = result.message;
+            uploadStatus.style.display = 'none';
+            csvSelect.value = ''; // Reset dropdown
+          }
+        } catch (error) {
+          uploadMessage.textContent = 'Upload failed: ' + error.message;
+          uploadStatus.style.display = 'none';
+          csvSelect.value = ''; // Reset dropdown
+        }
+        
+        // Clear the file input for next use
+        hiddenFileInput.value = '';
+      });
+    }
+  </script>
 </body>
-</html> 
+</html>
