@@ -102,11 +102,11 @@ def csv_to_pdf_with_highlights(csv_file, pdf_file):
 
         if row_type == 'READING':
             if tenant == 'ground floor':
-                fill_color = colors.cyan
+                fill_color = colors.skyblue
             elif tenant == 'first floor':
                 fill_color = colors.lightblue
             elif tenant == 'second floor':
-                fill_color = colors.lavender
+                fill_color = colors.lightcyan
 
         if row_type == 'RECHARGE':
             value_cols = ['Ground Floor', 'First Floor', 'Second Floor']
@@ -134,13 +134,11 @@ def csv_to_pdf_with_highlights(csv_file, pdf_file):
                     c.setFillColor(colors.green)
                     c.rect(x, y - row_height, col_width, row_height, fill=1)
                     c.setFillColor(colors.white)
-                elif fill_color:
-                    c.setFillColor(fill_color)
+                else:
+                    # Use light green for other recharge cells
+                    c.setFillColor(colors.lightgreen)
                     c.rect(x, y - row_height, col_width, row_height, fill=1)
                     c.setFillColor(colors.black)
-                else:
-                    c.setFillColor(colors.black)
-                    c.rect(x, y - row_height, col_width, row_height, fill=0)
             else:
                 if fill_color:
                     c.setFillColor(fill_color)
