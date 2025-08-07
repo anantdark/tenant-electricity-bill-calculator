@@ -73,6 +73,16 @@
     </div>
 
     <script>
+      // Theme management - apply saved theme
+      const root = document.documentElement;
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      
+      // Apply saved theme
+      if (savedTheme !== 'dark') {
+        root.className = '';
+        root.classList.add(savedTheme);
+      }
+
       const btn = document.getElementById('refreshStatus');
       const box = document.getElementById('sync-status');
       if (btn) {

@@ -62,10 +62,15 @@
     </div>
   </div>
   <script>
-    // Theme management - check for existing preference
+    // Theme management - apply saved theme
     const root = document.documentElement;
-    const preferLight = localStorage.getItem('theme') === 'light';
-    if (preferLight) root.classList.add('light');
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    
+    // Apply saved theme
+    if (savedTheme !== 'dark') {
+      root.className = '';
+      root.classList.add(savedTheme);
+    }
   </script>
 </body>
 </html> 

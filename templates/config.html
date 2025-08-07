@@ -66,12 +66,23 @@
       </div>
 
       <div class="field">
-        <label>Theme Preference</label>
-        <label class="switch">
-          <input type="checkbox" id="themeToggle">
-          <span>Dark Mode</span>
-        </label>
-        <small>Switch between dark and light themes</small>
+        <label for="themeSelect">Theme Preference</label>
+        <select id="themeSelect" name="theme" class="input-rounded">
+          <optgroup label="Dark Themes">
+            <option value="dark">Default Dark</option>
+            <option value="catppuccin-mocha">Catppuccin Mocha</option>
+            <option value="catppuccin-macchiato">Catppuccin Macchiato</option>
+            <option value="catppuccin-frappe">Catppuccin Frappe</option>
+          </optgroup>
+          <optgroup label="Light Themes">
+            <option value="light">Default Light</option>
+            <option value="catppuccin-latte">Catppuccin Latte</option>
+            <option value="light-blue">Light Blue</option>
+            <option value="light-green">Light Green</option>
+            <option value="light-purple">Light Purple</option>
+          </optgroup>
+        </select>
+        <small>Choose your preferred theme and color palette</small>
       </div>
 
       <button class="btn primary" type="submit">Save Configuration</button>
@@ -79,20 +90,34 @@
   </div>
   
   <script>
-    // Theme toggle functionality
-    const toggle = document.getElementById('themeToggle');
+    // Theme selection functionality
+    const themeSelect = document.getElementById('themeSelect');
     const root = document.documentElement;
-    const preferLight = localStorage.getItem('theme') === 'light';
-    const preferDark = !preferLight; // Dark mode is default
+    const savedTheme = localStorage.getItem('theme') || 'dark';
     
-    if (preferLight) root.classList.add('light');
+    // Apply saved theme
+    if (savedTheme !== 'dark') {
+      root.className = '';
+      root.classList.add(savedTheme);
+    }
     
-    if (toggle) {
-      // Show toggle as ON (checked) for dark mode (default), OFF for light mode
-      toggle.checked = preferDark;
-      toggle.addEventListener('change', () => {
-        root.classList.toggle('light');
-        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+    if (themeSelect) {
+      // Set the selected theme in the dropdown
+      themeSelect.value = savedTheme;
+      
+      themeSelect.addEventListener('change', () => {
+        const selectedTheme = themeSelect.value;
+        
+        // Remove all theme classes
+        root.className = '';
+        
+        // Apply new theme (except for default dark)
+        if (selectedTheme !== 'dark') {
+          root.classList.add(selectedTheme);
+        }
+        
+        // Save theme preference
+        localStorage.setItem('theme', selectedTheme);
       });
     }
     
