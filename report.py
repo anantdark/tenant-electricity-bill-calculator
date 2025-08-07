@@ -9,7 +9,7 @@ from reportlab.lib import colors
 
 # Cutoff date variable - modify this to filter records
 # Set to None to include all records, or specify a date in YYYY-MM-DD format
-cutoff_date = "2025-07-01"  # Format: YYYY-MM-DD or None for all records
+cutoff_date = None  # Format: YYYY-MM-DD or None for all records
 
 def parse_currency(val):
     try:
@@ -166,9 +166,6 @@ def generate_pdf_from_original_csv(original_csv, pdf_file, cutoff_date_param=Non
         if os.path.exists(temp_csv):
             os.remove(temp_csv)
 
-# Usage:
-# You can modify the cutoff_date variable above or pass it as a parameter
-# Set cutoff_date to None to include all records, or specify a date in YYYY-MM-DD format
-generate_pdf_from_original_csv("transactions.csv", "transactions.pdf")
-# Example with custom cutoff date: generate_pdf_from_original_csv("transactions.csv", "transactions.pdf", "2025-07-01")
-# Example with no cutoff (all records): generate_pdf_from_original_csv("transactions.csv", "transactions.pdf", None)
+if __name__ == "__main__":
+    # CLI usage
+    generate_pdf_from_original_csv("transactions.csv", "transactions.pdf")

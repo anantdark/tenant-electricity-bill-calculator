@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tenant Electricity Report</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Tenant Electricity Report</h1>
+      <p class="subtitle">Upload your transactions CSV or pick an existing one to generate a styled PDF.</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('record') }}">Record</a>
+        <a class="btn" href="{{ url_for('browse') }}">Browse</a>
+        <a class="btn" href="{{ url_for('sync') }}">Sync</a>
+        <a class="btn" href="{{ url_for('config_page') }}">Config</a>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle">
+          <span>Dark mode</span>
+        </label>
+        <label class="switch" title="Local mode disables Git operations and ensures local persistence">
+          <input type="checkbox" id="localToggle" {% if localmode %}checked{% endif %}>
+          <span>Local mode</span>
+        </label>
+      </div>
+    </header>
+
+    {% if status_data %}
+    <div class="ticker ticker-large">
+      <div class="ticker-row">
+        <span class="pill">CSV: {{ current_csv }}</span>
+        <span class="pill pill-ground">Ground: {{ status_data.balances['Ground Floor'] }}</span>
+        <span class="pill pill-first">First: {{ status_data.balances['First Floor'] }}</span>
+        <span class="pill pill-second">Second: {{ status_data.balances['Second Floor'] }}</span>
+        <span class="pill pill-recharge">Last Recharge: {{ status_data.last_recharge_amount }} by {{ status_data.last_recharge_tenant }}</span>
+        {% if next_recharge %}
+          <span class="pill pill-warning">Next recharge suggested: {{ next_recharge }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="toast">
+          {% for message in messages %}
+            <div class="toast-item">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="card" method="POST" enctype="multipart/form-data">
+      <div class="grid-2">
+        <div class="field">
+          <label for="existing_csv">CSV Source</label>
+          <select id="existing_csv" name="existing_csv">
+            <option value="">Use current ({{ current_csv }})</option>
+            {% for c in csvs %}
+              <option value="{{ c.path }}" {% if c.path == current_csv %}selected{% endif %}>{{ c.label }}</option>
+            {% endfor %}
+            <option value="upload">Upload…</option>
+          </select>
+        </div>
+        <div class="field" id="upload_field" style="display:none;">
+          <label for="file">Choose CSV</label>
+          <label class="file-input">
+            <input id="file" name="file" type="file" accept=".csv">
+            <span>Select file…</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cutoff_date">Cutoff Date (optional)</label>
+        <input id="cutoff_date" name="cutoff_date" type="date" placeholder="YYYY-MM-DD">
+        <small>Filter records after this date</small>
+      </div>
+
+      <button class="btn primary" type="submit">Generate PDF</button>
+    </form>
+
+    {% if metrics %}
+    <div class="card" style="margin-top:12px;">
+      <h3 style="margin:0 0 8px;">Usage metrics</h3>
+      <div class="metrics-grid">
+        <div class="metric"><div class="metric-label">Total Usage</div><div class="metric-value">{{ '%.2f'|format(metrics.total_usage) }} units</div></div>
+        <div class="metric"><div class="metric-label">Readings</div><div class="metric-value">{{ metrics.count_readings }}</div></div>
+        <div class="metric"><div class="metric-label">Recharges</div><div class="metric-value">{{ metrics.count_recharges }}</div></div>
+        <div class="metric"><div class="metric-label">Recharge Total</div><div class="metric-value">Rs.{{ '%.2f'|format(metrics.recharges_total) }}</div></div>
+      </div>
+      <canvas id="chartMonthlyTotal" height="120"></canvas>
+      <canvas id="chartMonthlyTenants" height="140" style="margin-top:12px;"></canvas>
+      <canvas id="chartYearlyAvg" height="120" style="margin-top:12px;"></canvas>
+    </div>
+    {% endif %}
+
+    <footer>
+      <p>Powered by ReportLab & Flask</p>
+    </footer>
+    </div>
+ 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const fileInput = document.getElementById('file');
+    const fileLabel = document.querySelector('.file-input span');
+    const sourceSel = document.getElementById('existing_csv');
+    const uploadField = document.getElementById('upload_field');
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        const name = fileInput.files && fileInput.files[0] ? fileInput.files[0].name : 'Select file…';
+        fileLabel.textContent = name;
+      });
+    }
+        function syncUploadField(){
+      uploadField.style.display = sourceSel && sourceSel.value === 'upload' ? 'block' : 'none';
+    }
+    if (sourceSel){ sourceSel.addEventListener('change', syncUploadField); syncUploadField(); }
+   
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const preferLight = localStorage.getItem('theme') === 'light';
+    if (preferLight) root.classList.add('light');
+    if (toggle) {
+      toggle.checked = preferLight;
+      toggle.addEventListener('change', () => {
+        root.classList.toggle('light');
+        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+      });
+    }
+    const localToggle = document.getElementById('localToggle');
+    if (localToggle){
+      localToggle.addEventListener('change', async () => {
+        await fetch("{{ url_for('toggle_localmode') }}", {method:'POST'});
+        location.reload();
+      });
+    }
+
+    // Charts
+    {% if metrics %}
+    const monthlyLabels = {{ metrics.monthly_total.keys()|list|tojson }};
+    const monthlyData = {{ metrics.monthly_total.values()|list|tojson }};
+    const ctx1 = document.getElementById('chartMonthlyTotal');
+    if (ctx1) {
+      new Chart(ctx1, { type: 'line', data: { labels: monthlyLabels, datasets: [{ label: 'Monthly Total Usage', data: monthlyData, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.25)', fill: true, tension: 0.3 }] }, options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, scales: { x: { ticks: { color: getComputedStyle(document.body).color } }, y: { ticks: { color: getComputedStyle(document.body).color } } } } });
+    }
+    const tenantLabels = monthlyLabels;
+    const ground = tenantLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['Ground Floor'] || 0);
+    const first = tenantLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['First Floor'] || 0);
+    const second = tenantLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['Second Floor'] || 0);
+    const ctx2 = document.getElementById('chartMonthlyTenants');
+    if (ctx2) {
+      new Chart(ctx2, { type: 'bar', data: { labels: tenantLabels, datasets: [
+        { label: 'Ground', data: ground, backgroundColor: 'rgba(59,130,246,0.6)' },
+        { label: 'First', data: first, backgroundColor: 'rgba(34,197,94,0.6)' },
+        { label: 'Second', data: second, backgroundColor: 'rgba(250,204,21,0.6)' },
+      ] }, options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, scales: { x: { stacked: true, ticks: { color: getComputedStyle(document.body).color } }, y: { stacked: true, ticks: { color: getComputedStyle(document.body).color } } } } });
+    }
+    const yearlyLabels = Object.keys({{ metrics.yearly_total|tojson }});
+    const yearlyAvg = Object.values({{ metrics.yearly_avg_total|tojson }});
+    const ctx3 = document.getElementById('chartYearlyAvg');
+    if (ctx3) {
+      new Chart(ctx3, { type: 'line', data: { labels: yearlyLabels, datasets: [{ label: 'Yearly Avg Usage', data: yearlyAvg, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.25)', fill: true, tension: 0.3 }] }, options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, scales: { x: { ticks: { color: getComputedStyle(document.body).color } }, y: { ticks: { color: getComputedStyle(document.body).color } } } } });
+    }
+    {% endif %}
+  </script>
+</body>
+</html> 

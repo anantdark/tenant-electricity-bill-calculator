@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Current Status</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Current Status</h1>
+      <p class="subtitle">CSV: {{ csv_path }}</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('index') }}">Print</a>
+        <a class="btn" href="{{ url_for('record') }}">Record</a>
+        <a class="btn" href="{{ url_for('revert') }}">Revert</a>
+        <a class="btn" href="{{ url_for('browse') }}">Browse</a>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle">
+          <span>Dark mode</span>
+        </label>
+      </div>
+    </header>
+
+    <div class="card">
+      <h3>Balances</h3>
+      <ul>
+        {% for tenant, balance in data.balances.items() %}
+          <li>{{ tenant }}: {{ balance }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h3>Last Readings</h3>
+      <ul>
+        {% for tenant, reading in data.last_readings.items() %}
+          <li>{{ tenant }}: {{ reading }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h3>Last Recharge</h3>
+      <p>Amount: {{ data.last_recharge_amount }}</p>
+      <p>Tenant: {{ data.last_recharge_tenant }}</p>
+    </div>
+
+    <div style="margin-top:12px;">
+      <a class="btn" href="{{ url_for('record') }}">Record Another</a>
+      <a class="btn" href="{{ url_for('index') }}">Back to Home</a>
+    </div>
+  </div>
+  <script>
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const preferLight = localStorage.getItem('theme') === 'light';
+    if (preferLight) root.classList.add('light');
+    if (toggle) {
+      toggle.checked = preferLight;
+      toggle.addEventListener('change', () => {
+        root.classList.toggle('light');
+        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+      });
+    }
+  </script>
+</body>
+</html> 

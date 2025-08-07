@@ -129,7 +129,11 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+.venv/
+__pycache__/
+app_config.json
+uploads/
+outputs/
 env/
 venv/
 ENV/

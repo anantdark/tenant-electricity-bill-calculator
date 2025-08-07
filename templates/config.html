@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuration</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Configuration</h1>
+      <p class="subtitle">Manage repository PAT token and default CSV preferences.</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('index') }}">Home</a>
+        <a class="btn" href="{{ url_for('sync') }}">Sync</a>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="toast">
+          {% for message in messages %}
+            <div class="toast-item">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="card" method="POST">
+      <div class="field">
+        <label for="git_pat">GitHub Personal Access Token (for HTTPS remotes)</label>
+        <input id="git_pat" name="git_pat" type="password" class="input-rounded" placeholder="Enter PAT (not committed; stored locally)">
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="csv_path">Default CSV</label>
+          <select id="csv_path" name="csv_path">
+            <option value="">Keep current ({{ current_csv }})</option>
+            {% for c in csvs %}
+              <option value="{{ c.path }}">{{ c.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <button class="btn primary" type="submit">Save Configuration</button>
+    </form>
+  </div>
+</body>
+</html> 

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report Ready</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Your PDF is Ready</h1>
+      <p class="subtitle">You can download it now.</p>
+    </header>
+
+    <div class="card center">
+      <a class="btn primary" href="{{ url_for('download', pdf_name=pdf_name) }}">Download PDF</a>
+      <a class="btn" href="{{ url_for('index') }}">Generate Another</a>
+    </div>
+
+    <footer>
+      <p>Powered by ReportLab & Flask</p>
+    </footer>
+  </div>
+</body>
+</html> 

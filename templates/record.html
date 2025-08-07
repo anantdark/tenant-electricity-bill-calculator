@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Record Readings & Recharge</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Record Readings & Recharge</h1>
+      <p class="subtitle">Enter readings for all tenants and the recharge info. Deductions are calculated automatically.</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('index') }}">Print</a>
+        <a class="btn" href="{{ url_for('revert') }}">Revert</a>
+        <a class="btn" href="{{ url_for('browse') }}">Browse</a>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle">
+          <span>Dark mode</span>
+        </label>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="toast">
+          {% for message in messages %}
+            <div class="toast-item">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="card" method="POST">
+      <div class="field">
+        <label for="target_csv">Target CSV</label>
+        <select id="target_csv" name="target_csv">
+          {% for c in csvs %}
+            <option value="{{ c.path }}">{{ c.label }}</option>
+          {% endfor %}
+          <option value="new">Create new…</option>
+        </select>
+      </div>
+      <div class="field" id="new_csv_name_field" style="display:none;">
+        <label for="new_csv_name">New CSV Name</label>
+        <input id="new_csv_name" name="new_csv_name" type="text" placeholder="my-transactions.csv">
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="gf_reading">Ground Floor Reading</label>
+          <input id="gf_reading" name="gf_reading" type="number" step="0.01" required>
+        </div>
+        <div class="field">
+          <label for="ff_reading">First Floor Reading</label>
+          <input id="ff_reading" name="ff_reading" type="number" step="0.01" required>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="sf_reading">Second Floor Reading</label>
+          <input id="sf_reading" name="sf_reading" type="number" step="0.01" required>
+        </div>
+        <div class="field">
+          <label for="recharge_tenant">Recharge Tenant</label>
+          <select id="recharge_tenant" name="recharge_tenant">
+            <option value="">— none —</option>
+            <option>Ground Floor</option>
+            <option>First Floor</option>
+            <option>Second Floor</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="recharge_amount">Recharge Amount</label>
+          <input id="recharge_amount" name="recharge_amount" type="number" step="0.01" placeholder="e.g. 1000">
+        </div>
+        <div class="field" style="display:flex; align-items:flex-end;">
+          <label class="checkbox">
+            <input type="checkbox" name="generate_now">
+            <span>Generate PDF now (no cutoff)</span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn primary" type="submit">Save Readings & Recharge</button>
+      <a class="btn" href="{{ url_for('index') }}">Back</a>
+    </form>
+  </div>
+
+  <script>
+    const select = document.getElementById('target_csv');
+    const newField = document.getElementById('new_csv_name_field');
+    function sync() {
+      newField.style.display = select.value === 'new' ? 'block' : 'none';
+    }
+    select.addEventListener('change', sync);
+    sync();
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const preferLight = localStorage.getItem('theme') === 'light';
+    if (preferLight) root.classList.add('light');
+    if (toggle) {
+      toggle.checked = preferLight;
+      toggle.addEventListener('change', () => {
+        root.classList.toggle('light');
+        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+      });
+    }
+  </script>
+</body>
+</html> 

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browse CSV</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Browse CSV</h1>
+      <p class="subtitle">View and search your CSV records.</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('index') }}">Home</a>
+        <a class="btn" href="{{ url_for('record') }}">Record</a>
+        <a class="btn" href="{{ url_for('revert') }}">Revert</a>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle">
+          <span>Dark mode</span>
+        </label>
+      </div>
+    </header>
+
+    <form class="card" method="GET">
+      <div class="grid-2">
+        <div class="field">
+          <label for="csv_path">CSV</label>
+          <select id="csv_path" name="csv_path">
+            {% for c in csvs %}
+              <option value="{{ c.path }}" {% if c.path == csv_path %}selected{% endif %}>{{ c.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="q">Search</label>
+          <input id="q" name="q" type="text" value="{{ q }}" placeholder="Type, Timestamp, Tenant, Value, Consumption, Balances">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="type">Type</label>
+          <select id="type" name="type">
+            <option value="all" {% if type_filter=='ALL' or type_filter=='all' %}selected{% endif %}>All</option>
+            <option value="READING" {% if type_filter=='READING' %}selected{% endif %}>READING</option>
+            <option value="RECHARGE" {% if type_filter=='RECHARGE' %}selected{% endif %}>RECHARGE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sort_by">Sort By</label>
+          <select id="sort_by" name="sort_by">
+            <option value="Timestamp" {% if sort_by=='Timestamp' %}selected{% endif %}>Timestamp</option>
+            <option value="Type" {% if sort_by=='Type' %}selected{% endif %}>Type</option>
+            <option value="Tenant" {% if sort_by=='Tenant' %}selected{% endif %}>Tenant</option>
+            <option value="Reading" {% if sort_by=='Reading' %}selected{% endif %}>Reading</option>
+            <option value="Consumption" {% if sort_by=='Consumption' %}selected{% endif %}>Consumption</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="sort_order">Order</label>
+          <select id="sort_order" name="sort_order">
+            <option value="desc" {% if sort_order=='desc' %}selected{% endif %}>Desc</option>
+            <option value="asc" {% if sort_order=='asc' %}selected{% endif %}>Asc</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="page_size">Page Size</label>
+          <input id="page_size" name="page_size" type="number" value="{{ page_size }}" min="1" max="200">
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn primary" type="submit">Apply</button>
+      </div>
+    </form>
+
+    <div class="card">
+      <div class="table-wrap">
+        <div class="table">
+          <div class="row header">
+            <div>Type</div><div>Timestamp</div><div>Tenant</div><div>Reading</div><div>Consumption</div><div>Ground</div><div>First</div><div>Second</div>
+          </div>
+          {% for r in rows %}
+            <div class="row {% if r.Type=='RECHARGE' %}recharge{% else %}reading{% endif %}">
+              <div><span class="badge {% if r.Type=='RECHARGE' %}badge-recharge{% else %}badge-reading{% endif %}">{{ r.Type }}</span></div>
+              <div class="wrap">{{ r.Timestamp }}</div>
+              <div class="wrap">{{ r.Tenant }}</div>
+              <div class="wrap">{{ r.ReadingAmount }}</div>
+              <div class="wrap">{{ r.Consumption }}</div>
+              <div class="wrap">{{ r.Ground }}</div>
+              <div class="wrap">{{ r.First }}</div>
+              <div class="wrap">{{ r.Second }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="pagination">
+        <div>Showing {{ (page-1)*page_size + 1 }} - {{ (page-1)*page_size + rows|length }} of {{ total }}</div>
+        <div class="pager">
+          {% set prev = page-1 %}
+          {% set next = page+1 %}
+          <a class="btn" href="{{ url_for('browse', csv_path=csv_path, q=q, type=type_filter, page=1, page_size=page_size) }}" {% if page <= 1 %}aria-disabled="true"{% endif %}>First</a>
+          <a class="btn" href="{{ url_for('browse', csv_path=csv_path, q=q, type=type_filter, page=prev if page>1 else 1, page_size=page_size) }}" {% if page <= 1 %}aria-disabled="true"{% endif %}>Prev</a>
+          <span class="page-indicator">Page {{ page }} / {{ total_pages }}</span>
+          <a class="btn" href="{{ url_for('browse', csv_path=csv_path, q=q, type=type_filter, page=next if page<total_pages else total_pages, page_size=page_size) }}" {% if page >= total_pages %}aria-disabled="true"{% endif %}>Next</a>
+          <a class="btn" href="{{ url_for('browse', csv_path=csv_path, q=q, type=type_filter, page=total_pages, page_size=page_size) }}" {% if page >= total_pages %}aria-disabled="true"{% endif %}>Last</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const preferLight = localStorage.getItem('theme') === 'light';
+    if (preferLight) root.classList.add('light');
+    if (toggle) {
+      toggle.checked = preferLight;
+      toggle.addEventListener('change', () => {
+        root.classList.toggle('light');
+        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+      });
+    }
+  </script>
+</body>
+</html> 

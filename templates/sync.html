@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Repository Sync</h1>
+      <p class="subtitle">Pull/push with remote. HTTPS remotes can use a PAT.</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('index') }}">Home</a>
+        <a class="btn" href="{{ url_for('browse') }}">Browse</a>
+        <a class="btn" href="{{ url_for('config_page') }}">Config</a>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="toast">
+          {% for message in messages %}
+            <div class="toast-item">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <div id="sync-status">
+        {% if not status.has_repo %}
+          <p>No git repository detected in this folder.</p>
+        {% else %}
+          <p><strong>Remote:</strong> {{ status.remote_url }}</p>
+          <p><strong>Branch:</strong> {{ status.branch }}</p>
+          <p><strong>Status:</strong> ahead {{ status.ahead }}, behind {{ status.behind }}</p>
+          {% if is_https and missing_pat %}
+            <div class="toast"><div class="toast-item">HTTPS remote detected. Please add a PAT token in <a href="{{ url_for('config_page') }}">Config</a> to enable pull/push.</div></div>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if status.has_repo %}
+      <div style="display:flex; gap:8px; margin:10px 0; flex-wrap:wrap;">
+        <a class="btn" href="#" id="refreshStatus">Refresh Status</a>
+      </div>
+      <form method="POST" style="display:flex; gap:8px; margin:10px 0; flex-wrap:wrap;">
+        <button class="btn" name="action" value="pull" type="submit" {% if is_https and missing_pat %}disabled{% endif %}>Pull</button>
+        <button class="btn" name="action" value="push" type="submit" {% if is_https and missing_pat %}disabled{% endif %}>Push</button>
+        <button class="btn" name="action" value="remove_remote" type="submit">Remove Remote</button>
+      </form>
+      <div class="card" style="margin-top:12px;">
+        <h3 style="margin-top:0;">Commit changes</h3>
+        <form method="POST" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input class="input-rounded" type="text" name="commit_msg" placeholder="Commit message (default: Update {{ default_commit_ts }})" style="flex:1; min-width:280px;">
+          <button class="btn" name="action" value="commit" type="submit">Commit</button>
+          <button class="btn" name="action" value="commit_and_push" type="submit" {% if is_https and missing_pat %}disabled{% endif %}>Commit & Push</button>
+        </form>
+        <small class="subtitle">If left blank, the message “Update {{ default_commit_ts }}” will be used. All tracked changes will be committed.</small>
+      </div>
+      {% endif %}
+    </div>
+
+    <script>
+      const btn = document.getElementById('refreshStatus');
+      const box = document.getElementById('sync-status');
+      if (btn) {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          box.innerHTML = '<p>Refreshing…</p>';
+          try {
+            const res = await fetch('{{ url_for('api_sync_status') }}?refresh=1');
+            const data = await res.json();
+            const st = data.status || {};
+            const warn = (data.is_https && data.missing_pat) ? '<div class="toast"><div class="toast-item">HTTPS remote detected. Please add a PAT token in <a href="{{ url_for('config_page') }}">Config</a> to enable pull/push.</div></div>' : '';
+            box.innerHTML = '<p><strong>Remote:</strong> ' + (st.remote_url || 'N/A') + '</p>' +
+                             '<p><strong>Branch:</strong> ' + (st.branch || 'N/A') + '</p>' +
+                             '<p><strong>Status:</strong> ahead ' + (st.ahead || 0) + ', behind ' + (st.behind || 0) + '</p>' + warn;
+          } catch(e) {
+            box.innerHTML = '<p>Failed to refresh status.</p>';
+          }
+        });
+      }
+    </script>
+  </div>
+</body>
+</html> 

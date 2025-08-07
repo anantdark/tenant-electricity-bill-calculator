@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revert Last Entries</title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Revert Last Entries</h1>
+      <p class="subtitle">CSV: {{ csv_path }}</p>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('record') }}">Record</a>
+        <a class="btn" href="{{ url_for('index') }}">Print</a>
+        <a class="btn" href="{{ url_for('browse') }}">Browse</a>
+        <label class="switch">
+          <input type="checkbox" id="themeToggle">
+          <span>Dark mode</span>
+        </label>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="toast">
+          {% for message in messages %}
+            <div class="toast-item">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      {% if preview %}
+        <p>The following rows will be deleted (timestamp group: <strong>{{ ts }}</strong>):</p>
+        <div class="table">
+          <div class="row header">
+            <div>Type</div><div>Timestamp</div><div>Tenant</div><div>Value</div><div>Consumption</div><div>Balances</div>
+          </div>
+          {% for r in preview %}
+          <div class="row">
+            <div>{{ r.Type }}</div><div>{{ r.Timestamp }}</div><div>{{ r.Tenant }}</div><div>{{ r['Reading/Amount'] }}</div><div>{{ r.Consumption }}</div><div class="mono">{{ r.Balances }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        <form method="POST" style="margin-top:12px;">
+          <input type="hidden" name="csv_path" value="{{ csv_path }}">
+          <button class="btn primary" type="submit">Confirm Revert</button>
+          <a class="btn" href="{{ url_for('status', csv_path=csv_path) }}">Cancel</a>
+        </form>
+      {% else %}
+        <p>No recent group of readings found to revert.</p>
+        <a class="btn" href="{{ url_for('record') }}">Record now</a>
+      {% endif %}
+    </div>
+  </div>
+  <script>
+    const toggle = document.getElementById('themeToggle');
+    const root = document.documentElement;
+    const preferLight = localStorage.getItem('theme') === 'light';
+    if (preferLight) root.classList.add('light');
+    if (toggle) {
+      toggle.checked = preferLight;
+      toggle.addEventListener('change', () => {
+        root.classList.toggle('light');
+        localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+      });
+    }
+  </script>
+</body>
+</html> 
