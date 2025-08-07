@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  tenant-electricity-calculator:
+    build: .
+    container_name: tenant-electricity-calculator
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount directories that should persist data
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      # Mount config file for persistence
+      - ./app_config.json:/app/app_config.json:rw
+      # Mount any existing CSV files
+      - ./transactions.csv:/app/transactions.csv:rw
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development service with live reload
+  tenant-electricity-calculator-dev:
+    build: .
+    container_name: tenant-electricity-calculator-dev
+    ports:
+      - "5001:5000"
+    volumes:
+      # Mount the entire project for development
+      - .:/app
+      # Create bind mounts for node_modules to avoid permission issues
+      - /app/__pycache__
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: ["python", "app.py"]
+    profiles:
+      - dev
+
+networks:
+  default:
+    name: tenant-electricity-calculator-network
