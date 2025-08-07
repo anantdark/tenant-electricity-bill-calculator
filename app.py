@@ -1,6 +1,20 @@
+import os
+
+# Set environment detection FIRST, before any other operations
+IS_DEPLOYED = os.environ.get('DEPLOYED', 'false').lower() == 'true'
+VERCEL_ENV = os.environ.get('VERCEL') is not None
+
+# Use /tmp paths if deployed (Vercel or other cloud platforms)
+if IS_DEPLOYED or VERCEL_ENV:
+    UPLOAD_FOLDER = '/tmp/uploads'
+    OUTPUT_FOLDER = '/tmp/outputs'
+else:
+    UPLOAD_FOLDER = 'uploads'
+    OUTPUT_FOLDER = 'outputs'
+
+# Now import everything else
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session, jsonify
 from werkzeug.utils import secure_filename
-import os
 import pandas as pd
 from datetime import datetime
 import csv
@@ -14,14 +28,6 @@ import threading
 
 from report import generate_pdf_from_original_csv
 
-# Check if running on Vercel and adjust paths accordingly
-if os.environ.get('VERCEL'):
-    UPLOAD_FOLDER = '/tmp/uploads'
-    OUTPUT_FOLDER = '/tmp/outputs'
-else:
-    UPLOAD_FOLDER = 'uploads'
-    OUTPUT_FOLDER = 'outputs'
-
 ALLOWED_EXTENSIONS = {'csv'}
 CSV_HEADERS = ['Type', 'Timestamp', 'Tenant', 'Reading/Amount', 'Consumption', 'Balances']
 TENANTS = ['Ground Floor', 'First Floor', 'Second Floor']
@@ -32,9 +38,19 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.secret_key = 'change-me'
 
-# Create directories after Flask app initialization
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+# Create directories after Flask app initialization (handle read-only filesystem)
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+except (OSError, PermissionError):
+    # Skip directory creation on read-only filesystems like Vercel
+    pass
+
+# Set default local mode for deployed environments
+@app.before_request
+def set_deployment_defaults():
+    if IS_DEPLOYED and 'localmode' not in session:
+        session['localmode'] = True
 
 
 def flash_with_status(message: str, status: str = 'neutral'):
@@ -86,9 +102,12 @@ def determine_git_command_status(code: int, out: str, err: str, action: str) -> 
 
 
 def load_config() -> Dict:
-    if os.path.exists(CONFIG_PATH):
+    # Use /tmp for config file if deployed to avoid read-only filesystem issues
+    config_path = os.path.join('/tmp', 'app_config.json') if (IS_DEPLOYED or VERCEL_ENV) else CONFIG_PATH
+    
+    if os.path.exists(config_path):
         try:
-            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            with open(config_path, 'r', encoding='utf-8') as f:
                 return json.load(f) or {}
         except Exception:
             return {}
@@ -96,8 +115,15 @@ def load_config() -> Dict:
 
 
 def save_config(cfg: Dict) -> None:
-    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-        json.dump(cfg, f, indent=2)
+    # Use /tmp for config file if deployed to avoid read-only filesystem issues
+    config_path = os.path.join('/tmp', 'app_config.json') if (IS_DEPLOYED or VERCEL_ENV) else CONFIG_PATH
+    
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(cfg, f, indent=2)
+    except (OSError, PermissionError):
+        # Skip config saving on read-only filesystems
+        pass
 
 
 def allowed_file(filename: str) -> bool:

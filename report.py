@@ -158,8 +158,10 @@ def generate_pdf_from_original_csv(original_csv, pdf_file, cutoff_date_param=Non
     if cutoff_date_param is not None:
         cutoff_date = cutoff_date_param
     
-    # Use temporary file in appropriate directory (Vercel-compatible)
-    temp_dir = '/tmp' if os.environ.get('VERCEL') else '.'
+    # Use temporary file in appropriate directory (deployment-compatible)
+    is_deployed = os.environ.get('DEPLOYED', 'false').lower() == 'true'
+    vercel_env = os.environ.get('VERCEL') is not None
+    temp_dir = '/tmp' if (is_deployed or vercel_env) else '.'
     temp_csv = os.path.join(temp_dir, "temp_output.csv")
     
     try:
