@@ -92,9 +92,53 @@
         <div class="metric"><div class="metric-label">Recharges</div><div class="metric-value">{{ metrics.count_recharges }}</div></div>
         <div class="metric"><div class="metric-label">Recharge Total</div><div class="metric-value">Rs.{{ '%.2f'|format(metrics.recharges_total) }}</div></div>
       </div>
-      <canvas id="chartMonthlyTotal" height="120"></canvas>
-      <canvas id="chartMonthlyTenants" height="140" style="margin-top:12px;"></canvas>
-      <canvas id="chartYearlyAvg" height="120" style="margin-top:12px;"></canvas>
+      
+      <div class="metrics-toggles">
+        <label class="switch">
+          <input type="checkbox" id="viewToggle">
+          <span>Show tenant-wise</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="costToggle" checked>
+          <span>Show cost estimates</span>
+        </label>
+      </div>
+      
+      <div id="estimates" style="margin-top:12px;">
+        <h4 style="margin:0 0 8px;">Monthly Estimates (based on last 3 months)</h4>
+        <div class="estimates-grid">
+          <div class="estimate">
+            <div class="estimate-label">Ground Floor</div>
+            <div class="estimate-units">{{ '%.1f'|format((metrics.monthly_avg_per_tenant.get('Ground Floor', 0) / metrics.per_unit_cost) if metrics.per_unit_cost > 0 else 0) }} units/month</div>
+            <div class="estimate-cost">~Rs.{{ '%.0f'|format(metrics.monthly_avg_per_tenant.get('Ground Floor', 0)) }}/month</div>
+          </div>
+          <div class="estimate">
+            <div class="estimate-label">First Floor</div>
+            <div class="estimate-units">{{ '%.1f'|format((metrics.monthly_avg_per_tenant.get('First Floor', 0) / metrics.per_unit_cost) if metrics.per_unit_cost > 0 else 0) }} units/month</div>
+            <div class="estimate-cost">~Rs.{{ '%.0f'|format(metrics.monthly_avg_per_tenant.get('First Floor', 0)) }}/month</div>
+          </div>
+          <div class="estimate">
+            <div class="estimate-label">Second Floor</div>
+            <div class="estimate-units">{{ '%.1f'|format((metrics.monthly_avg_per_tenant.get('Second Floor', 0) / metrics.per_unit_cost) if metrics.per_unit_cost > 0 else 0) }} units/month</div>
+            <div class="estimate-cost">~Rs.{{ '%.0f'|format(metrics.monthly_avg_per_tenant.get('Second Floor', 0)) }}/month</div>
+          </div>
+          <div class="estimate">
+            <div class="estimate-label">Total</div>
+            <div class="estimate-units">{{ '%.1f'|format((metrics.monthly_avg_total / metrics.per_unit_cost) if metrics.per_unit_cost > 0 else 0) }} units/month</div>
+            <div class="estimate-cost">~Rs.{{ '%.0f'|format(metrics.monthly_avg_total) }}/month</div>
+          </div>
+        </div>
+        
+        <div style="margin:16px 0 8px;">
+          <p><strong>Per Unit Cost (last 3 months): Rs.{{ '%.2f'|format(metrics.per_unit_cost) }}</strong></p>
+        </div>
+      </div>
+      
+      <div id="monthlyChart" style="margin-top:12px;">
+        <canvas id="chartMonthlyTotal" height="120"></canvas>
+        <canvas id="chartMonthlyTenants" height="140" style="display:none;"></canvas>
+      </div>
+      
     </div>
     {% endif %}
 
@@ -143,29 +187,110 @@
     {% if metrics %}
     const monthlyLabels = {{ metrics.monthly_total.keys()|list|tojson }};
     const monthlyData = {{ metrics.monthly_total.values()|list|tojson }};
-    const ctx1 = document.getElementById('chartMonthlyTotal');
-    if (ctx1) {
-      new Chart(ctx1, { type: 'line', data: { labels: monthlyLabels, datasets: [{ label: 'Monthly Total Usage', data: monthlyData, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.25)', fill: true, tension: 0.3 }] }, options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, scales: { x: { ticks: { color: getComputedStyle(document.body).color } }, y: { ticks: { color: getComputedStyle(document.body).color } } } } });
+    const ground = monthlyLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['Ground Floor'] || 0);
+    const first = monthlyLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['First Floor'] || 0);
+    const second = monthlyLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['Second Floor'] || 0);
+    
+    let chartMonthlyTotal, chartMonthlyTenants;
+    
+    function createMonthlyTotal() {
+      const ctx = document.getElementById('chartMonthlyTotal');
+      if (ctx && !chartMonthlyTotal) {
+        chartMonthlyTotal = new Chart(ctx, { 
+          type: 'line', 
+          data: { 
+            labels: monthlyLabels, 
+            datasets: [{ 
+              label: 'Monthly Total Usage (units)', 
+              data: monthlyData, 
+              borderColor: '#22d3ee', 
+              backgroundColor: 'rgba(34,211,238,0.25)', 
+              fill: true, 
+              tension: 0.3 
+            }] 
+          }, 
+          options: { 
+            plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, 
+            scales: { 
+              x: { ticks: { color: getComputedStyle(document.body).color } }, 
+              y: { ticks: { color: getComputedStyle(document.body).color } } 
+            } 
+          } 
+        });
+      }
     }
-    const tenantLabels = monthlyLabels;
-    const ground = tenantLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['Ground Floor'] || 0);
-    const first = tenantLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['First Floor'] || 0);
-    const second = tenantLabels.map(l => ({{ metrics.monthly_usage|tojson }}[l] || {})['Second Floor'] || 0);
-    const ctx2 = document.getElementById('chartMonthlyTenants');
-    if (ctx2) {
-      new Chart(ctx2, { type: 'bar', data: { labels: tenantLabels, datasets: [
-        { label: 'Ground', data: ground, backgroundColor: 'rgba(59,130,246,0.6)' },
-        { label: 'First', data: first, backgroundColor: 'rgba(34,197,94,0.6)' },
-        { label: 'Second', data: second, backgroundColor: 'rgba(250,204,21,0.6)' },
-      ] }, options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, scales: { x: { stacked: true, ticks: { color: getComputedStyle(document.body).color } }, y: { stacked: true, ticks: { color: getComputedStyle(document.body).color } } } } });
+    
+    function createMonthlyTenants() {
+      const ctx = document.getElementById('chartMonthlyTenants');
+      if (ctx && !chartMonthlyTenants) {
+        chartMonthlyTenants = new Chart(ctx, { 
+          type: 'bar', 
+          data: { 
+            labels: monthlyLabels, 
+            datasets: [
+              { label: 'Ground (units)', data: ground, backgroundColor: 'rgba(59,130,246,0.6)' },
+              { label: 'First (units)', data: first, backgroundColor: 'rgba(34,197,94,0.6)' },
+              { label: 'Second (units)', data: second, backgroundColor: 'rgba(250,204,21,0.6)' },
+            ] 
+          }, 
+          options: { 
+            plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, 
+            scales: { 
+              x: { stacked: true, ticks: { color: getComputedStyle(document.body).color } }, 
+              y: { stacked: true, ticks: { color: getComputedStyle(document.body).color } } 
+            } 
+          } 
+        });
+      }
     }
-    const yearlyLabels = Object.keys({{ metrics.yearly_total|tojson }});
-    const yearlyAvg = Object.values({{ metrics.yearly_avg_total|tojson }});
-    const ctx3 = document.getElementById('chartYearlyAvg');
-    if (ctx3) {
-      new Chart(ctx3, { type: 'line', data: { labels: yearlyLabels, datasets: [{ label: 'Yearly Avg Usage', data: yearlyAvg, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.25)', fill: true, tension: 0.3 }] }, options: { plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } }, scales: { x: { ticks: { color: getComputedStyle(document.body).color } }, y: { ticks: { color: getComputedStyle(document.body).color } } } } });
+    
+    // Initialize charts
+    createMonthlyTotal();
+    createMonthlyTenants();
+    
+    // Toggle handlers
+    const viewToggle = document.getElementById('viewToggle');
+    const costToggle = document.getElementById('costToggle');
+    const estimates = document.getElementById('estimates');
+    
+    if (viewToggle) {
+      viewToggle.addEventListener('change', () => {
+        const showTenants = viewToggle.checked;
+        const monthlyTotal = document.getElementById('chartMonthlyTotal');
+        const monthlyTenants = document.getElementById('chartMonthlyTenants');
+        
+        if (showTenants) {
+          monthlyTotal.style.display = 'none';
+          monthlyTenants.style.display = 'block';
+        } else {
+          monthlyTotal.style.display = 'block';
+          monthlyTenants.style.display = 'none';
+        }
+      });
+      
+      // Initialize display based on checkbox state
+      const showTenants = viewToggle.checked;
+      const monthlyTotal = document.getElementById('chartMonthlyTotal');
+      const monthlyTenants = document.getElementById('chartMonthlyTenants');
+      
+      if (showTenants) {
+        monthlyTotal.style.display = 'none';
+        monthlyTenants.style.display = 'block';
+      } else {
+        monthlyTotal.style.display = 'block';
+        monthlyTenants.style.display = 'none';
+      }
+    }
+    
+    if (costToggle) {
+      costToggle.addEventListener('change', () => {
+        estimates.style.display = costToggle.checked ? 'block' : 'none';
+      });
+      // Initialize display based on checkbox state
+      estimates.style.display = costToggle.checked ? 'block' : 'none';
     }
     {% endif %}
   </script>
 </body>
+</html> 
 </html> 

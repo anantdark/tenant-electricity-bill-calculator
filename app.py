@@ -273,6 +273,11 @@ def compute_metrics(csv_path: str) -> Dict:
     recharges_per_tenant = {t: 0.0 for t in TENANTS}
     count_readings = 0
     count_recharges = 0
+    
+    # Track initial readings to exclude them from calculations
+    initial_readings = {}
+    first_timestamp = None
+    
     with open(csv_path, 'r', newline='', encoding='utf-8') as f:
         reader = csv.reader(f)
         header = next(reader, None)
@@ -282,11 +287,23 @@ def compute_metrics(csv_path: str) -> Dict:
             typ, ts, tenant, val, cons = row[0], row[1], row[2], row[3], row[4]
             ym = (ts or '')[:7]
             yr = (ts or '')[:4]
+            
+            # Track the first timestamp to identify initial readings
+            if first_timestamp is None:
+                first_timestamp = ts
+            
             if typ == 'READING':
                 try:
                     c = float(cons) if cons else 0.0
                 except Exception:
                     c = 0.0
+                
+                # If this is the first timestamp, store as initial readings (baseline)
+                if ts == first_timestamp:
+                    initial_readings[tenant] = c
+                    # Don't count initial readings as consumption
+                    continue
+                
                 totals[tenant] = totals.get(tenant, 0.0) + c
                 monthly.setdefault(ym, {t: 0.0 for t in TENANTS})
                 monthly[ym][tenant] += c
@@ -317,18 +334,80 @@ def compute_metrics(csv_path: str) -> Dict:
     for t in TENANTS:
         yt = yearly_per_tenant.get(t, {})
         yearly_avg_per_tenant[t] = {yr: (yt.get(yr, 0.0) / max(1, months_per_year.get(yr, 1))) for yr in yt.keys()}
+    # Calculate monthly estimates based on last 3 months data
+    def calculate_estimates_from_recharges():
+        # Get last 3 months (or all if less than 3) of data
+        all_months = sorted([ym for ym in monthly_total.keys() if ym in monthly], reverse=True)
+        analysis_months = all_months[:3]  # Last 3 months or all if less than 3
+        if not analysis_months:
+            return {}, 0.0, {}, 0.0, 0.0
+        
+        # Calculate total recharge amount and consumption in the last 3 months
+        total_recharge_period = 0.0
+        total_consumption_period = {t: 0.0 for t in TENANTS}
+        monthly_recharge_data = {}
+        
+        for ym in analysis_months:
+            monthly_recharge_data[ym] = 0.0
+            # Get consumption for this month from the monthly data we already calculated
+            if ym in monthly:
+                for tenant in TENANTS:
+                    total_consumption_period[tenant] += monthly[ym].get(tenant, 0.0)
+            
+            # Find recharges in this month
+            with open(csv_path, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader)  # Skip header
+                for row in reader:
+                    if len(row) >= 5:
+                        typ, ts, tenant, val, cons = row[0], row[1], row[2], row[3], row[4]
+                        if typ == 'RECHARGE' and ts.startswith(ym):
+                            try:
+                                amt = float(val) if val else 0.0
+                                total_recharge_period += amt
+                                monthly_recharge_data[ym] += amt
+                            except Exception:
+                                pass
+        
+        # Calculate per unit cost based on last 3 months
+        total_consumption_all_tenants = sum(total_consumption_period.values())
+        per_unit_cost = total_recharge_period / total_consumption_all_tenants if total_consumption_all_tenants > 0 else 0.0
+        
+        # Calculate average monthly consumption and estimates for each tenant
+        months_count = len(analysis_months)
+        monthly_estimates = {}
+        
+        for t in TENANTS:
+            # Average monthly consumption for this tenant in last 3 months
+            avg_monthly_consumption = total_consumption_period[t] / months_count if months_count > 0 else 0.0
+            
+            # Monthly estimate = average monthly consumption * per unit cost
+            monthly_estimates[t] = avg_monthly_consumption * per_unit_cost
+        
+        # Calculate average monthly total
+        avg_monthly_recharge = total_recharge_period / months_count if months_count > 0 else 0.0
+        
+        return monthly_estimates, avg_monthly_recharge, monthly_recharge_data, per_unit_cost
+    
+    monthly_avg_per_tenant, monthly_avg_total, monthly_recharge_data, per_unit_cost = calculate_estimates_from_recharges()
+    
     return {
         'total_usage': total_usage,
         'usage_per_tenant': totals,
         'monthly_usage': monthly,
         'monthly_total': monthly_total,
         'latest_month': latest_month,
-        'yearly_total': yearly_total,
+        'monthly_avg_total': monthly_avg_total,
+        'monthly_avg_per_tenant': monthly_avg_per_tenant,
         'yearly_avg_total': yearly_avg_total,
-        'yearly_per_tenant': yearly_per_tenant,
         'yearly_avg_per_tenant': yearly_avg_per_tenant,
+        'yearly_total': yearly_total,
+        'yearly_per_tenant': yearly_per_tenant,
+        'yearly_avg_per_tenant_old': yearly_avg_per_tenant,  # Keep old calculation for charts
         'recharges_total': recharges_total,
         'recharges_per_tenant': recharges_per_tenant,
+        'monthly_recharge_data': monthly_recharge_data,
+        'per_unit_cost': per_unit_cost,  # Add per unit cost based on last 3 months
         'count_readings': count_readings,
         'count_recharges': count_recharges,
     }
