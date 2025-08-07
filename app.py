@@ -974,5 +974,16 @@ def browse():
     return render_template('browse.html', csvs=csvs, csv_path=csv_path, rows=enriched_rows, page=page, page_size=page_size, total=total, total_pages=total_pages, q=q, type_filter=type_filter, sort_by=sort_by, sort_order=sort_order, localmode=session.get('localmode', False))
 
 
+# For Vercel deployment, we need to modify file operations to use /tmp
+if os.environ.get('VERCEL'):
+    app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
+    app.config['OUTPUT_FOLDER'] = '/tmp/outputs'
+    UPLOAD_FOLDER = '/tmp/uploads'
+    OUTPUT_FOLDER = '/tmp/outputs'
+    
+    # Ensure tmp directories exist
+    os.makedirs('/tmp/uploads', exist_ok=True)
+    os.makedirs('/tmp/outputs', exist_ok=True)
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    app.run(host='0.0.0.0', port=5000, debug=True)
