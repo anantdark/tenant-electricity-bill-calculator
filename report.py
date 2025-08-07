@@ -7,6 +7,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 
+# Cutoff date variable - modify this to filter records
+# Set to None to include all records, or specify a date in YYYY-MM-DD format
+cutoff_date = "2025-07-01"  # Format: YYYY-MM-DD or None for all records
+
 def parse_currency(val):
     try:
         return float(str(val).replace("Rs.", "").replace(",", ""))
@@ -18,6 +22,16 @@ def transform_csv(input_file, temp_file):
 
     # Parse Timestamp to date only
     df['Timestamp'] = df['Timestamp'].apply(lambda x: str(x).split(' ')[0])
+    
+    # Filter records based on cutoff date
+    # If cutoff_date is None, include all records
+    if cutoff_date is not None:
+        # Convert dates to datetime for proper comparison
+        df['Date'] = pd.to_datetime(df['Timestamp'])
+        cutoff_datetime = pd.to_datetime(cutoff_date)
+        df = df[df['Date'] > cutoff_datetime]
+        # Drop the temporary Date column
+        df = df.drop(columns=['Date'])
 
     # Parse Balances into separate columns
     def parse_balances(balance_str):
@@ -140,7 +154,11 @@ def csv_to_pdf_with_highlights(csv_file, pdf_file):
 
     c.save()
 
-def generate_pdf_from_original_csv(original_csv, pdf_file):
+def generate_pdf_from_original_csv(original_csv, pdf_file, cutoff_date_param=None):
+    global cutoff_date
+    if cutoff_date_param is not None:
+        cutoff_date = cutoff_date_param
+    
     temp_csv = "temp_output.csv"
     try:
         transform_csv(original_csv, temp_csv)
@@ -151,4 +169,8 @@ def generate_pdf_from_original_csv(original_csv, pdf_file):
             os.remove(temp_csv)
 
 # Usage:
+# You can modify the cutoff_date variable above or pass it as a parameter
+# Set cutoff_date to None to include all records, or specify a date in YYYY-MM-DD format
 generate_pdf_from_original_csv("transactions.csv", "transactions.pdf")
+# Example with custom cutoff date: generate_pdf_from_original_csv("transactions.csv", "transactions.pdf", "2025-07-01")
+# Example with no cutoff (all records): generate_pdf_from_original_csv("transactions.csv", "transactions.pdf", None)
