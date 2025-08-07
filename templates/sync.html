@@ -19,11 +19,11 @@
       </div>
     </header>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
+    {% with messages_with_status = get_flash_messages_with_status() %}
+      {% if messages_with_status %}
         <div class="toast">
-          {% for message in messages %}
-            <div class="toast-item">{{ message }}</div>
+          {% for message, status in messages_with_status %}
+            <div class="toast-item {{ status }}">{{ message }}</div>
           {% endfor %}
         </div>
       {% endif %}

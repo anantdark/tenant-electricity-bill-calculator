@@ -30,6 +30,54 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 
+def flash_with_status(message: str, status: str = 'neutral'):
+    """Flash a message with a status type (success, error, neutral)"""
+    # Store the status in session to be retrieved in templates
+    session.setdefault('flash_statuses', []).append(status)
+    flash(message)
+
+
+def get_flash_messages_with_status():
+    """Get flash messages with their corresponding status types"""
+    from flask import get_flashed_messages
+    messages = get_flashed_messages()
+    statuses = session.pop('flash_statuses', [])
+    
+    # Ensure we have a status for each message, default to 'neutral'
+    while len(statuses) < len(messages):
+        statuses.append('neutral')
+    
+    return list(zip(messages, statuses))
+
+
+# Make helper function available in templates
+app.jinja_env.globals.update(get_flash_messages_with_status=get_flash_messages_with_status)
+
+
+def determine_git_command_status(code: int, out: str, err: str, action: str) -> str:
+    """Determine if a git command was successful based on return code and output"""
+    if code == 0:
+        # Check for specific success indicators
+        if action == 'pull':
+            if 'Already up to date' in out or 'Fast-forward' in out or 'Merge made' in out:
+                return 'success'
+            elif 'up-to-date' in out.lower() or 'already up to date' in out.lower():
+                return 'success'
+        elif action == 'push':
+            if 'To ' in out and ('new branch' in out or 'branch' in out):
+                return 'success'
+            elif not err or 'Everything up-to-date' in out:
+                return 'success'
+        elif action == 'commit':
+            if 'files changed' in out or 'create mode' in out or 'nothing to commit' in out:
+                return 'success'
+        
+        # If return code is 0 but we can't determine specific success, it's likely successful
+        return 'success'
+    else:
+        return 'error'
+
+
 def load_config() -> Dict:
     if os.path.exists(CONFIG_PATH):
         try:
@@ -563,23 +611,27 @@ def sync():
         if action == 'pull':
             run_git('git fetch --prune')
             code, out, err = run_git(f'git pull {shlex.quote(auth_remote)} {shlex.quote(branch)}')
-            flash(err or out or 'Pulled')
+            status = determine_git_command_status(code, out, err, 'pull')
+            flash_with_status(err or out or 'Pulled', status)
             return redirect(url_for('sync'))
         if action == 'push':
             code, out, err = run_git(f'git push {shlex.quote(auth_remote)} {shlex.quote(branch)}')
-            flash(err or out or 'Pushed')
+            status = determine_git_command_status(code, out, err, 'push')
+            flash_with_status(err or out or 'Pushed', status)
             return redirect(url_for('sync'))
         if action in ('commit', 'commit_and_push'):
             msg = request.form.get('commit_msg') or f'Update {datetime.now().isoformat(timespec="seconds")}'
             run_git('git add -A')
             code, out, err = run_git(f'git commit -m {shlex.quote(msg)}')
-            flash(err or out or 'Committed')
+            status = determine_git_command_status(code, out, err, 'commit')
+            flash_with_status(err or out or 'Committed', status)
             if action == 'commit_and_push':
                 if remote.startswith('https://') and not git_pat:
-                    flash('Cannot push: PAT token missing. Configure it in Config.')
+                    flash_with_status('Cannot push: PAT token missing. Configure it in Config.', 'error')
                     return redirect(url_for('config_page'))
                 code, out, err = run_git(f'git push {shlex.quote(auth_remote)} {shlex.quote(branch)}')
-                flash((err or out or '') + ' Pushed')
+                push_status = determine_git_command_status(code, out, err, 'push')
+                flash_with_status((err or out or '') + ' Pushed', push_status)
             return redirect(url_for('sync'))
         if action == 'remove_remote':
             if status['behind'] > 0:
