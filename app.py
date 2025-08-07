@@ -14,8 +14,14 @@ import threading
 
 from report import generate_pdf_from_original_csv
 
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
+# Check if running on Vercel and adjust paths accordingly
+if os.environ.get('VERCEL'):
+    UPLOAD_FOLDER = '/tmp/uploads'
+    OUTPUT_FOLDER = '/tmp/outputs'
+else:
+    UPLOAD_FOLDER = 'uploads'
+    OUTPUT_FOLDER = 'outputs'
+
 ALLOWED_EXTENSIONS = {'csv'}
 CSV_HEADERS = ['Type', 'Timestamp', 'Tenant', 'Reading/Amount', 'Consumption', 'Balances']
 TENANTS = ['Ground Floor', 'First Floor', 'Second Floor']
