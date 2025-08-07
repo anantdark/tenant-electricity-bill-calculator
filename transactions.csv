@@ -67,3 +67,11 @@ READING,2025-07-14 13:55:32,Ground Floor,3386.0,71.0,Ground Floor: Rs.1108.13; F
 READING,2025-07-14 13:55:32,First Floor,7365.0,88.0,Ground Floor: Rs.1108.13; First Floor: Rs.-214.42; Second Floor: Rs.117.29
 READING,2025-07-14 13:55:32,Second Floor,996.0,0.0,Ground Floor: Rs.1108.13; First Floor: Rs.-214.42; Second Floor: Rs.117.29
 RECHARGE,2025-07-14 13:56:04,First Floor,1500.0,,Ground Floor: Rs.656.68; First Floor: Rs.726.03; Second Floor: Rs.117.29
+READING,2025-07-24 13:24:46,Ground Floor,3473.0,87.0,Ground Floor: Rs.656.68; First Floor: Rs.726.03; Second Floor: Rs.117.29
+READING,2025-07-24 13:24:46,First Floor,7475.0,110.0,Ground Floor: Rs.656.68; First Floor: Rs.726.03; Second Floor: Rs.117.29
+READING,2025-07-24 13:24:46,Second Floor,997.0,1.0,Ground Floor: Rs.656.68; First Floor: Rs.726.03; Second Floor: Rs.117.29
+RECHARGE,2025-07-24 13:25:16,Ground Floor,1011.0,,Ground Floor: Rs.1008.59; First Floor: Rs.-107.30; Second Floor: Rs.109.71
+READING,2025-08-07 22:51:23,Ground Floor,3533.0,60.0,Ground Floor: Rs.1008.59; First Floor: Rs.-107.30; Second Floor: Rs.109.71
+READING,2025-08-07 22:51:23,First Floor,7589.0,114.0,Ground Floor: Rs.1008.59; First Floor: Rs.-107.30; Second Floor: Rs.109.71
+READING,2025-08-07 22:51:23,Second Floor,998.0,1.0,Ground Floor: Rs.1008.59; First Floor: Rs.-107.30; Second Floor: Rs.109.71
+RECHARGE,2025-08-07 22:51:48,First Floor,2000.0,,Ground Floor: Rs.661.96; First Floor: Rs.1234.11; Second Floor: Rs.103.93
