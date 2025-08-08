@@ -1,91 +1,381 @@
-# Electricity Calculator for Tenant Recharges
+# ⚡ Tenant Electricity Bill Calculator
 
-This application calculates tenant recharge balances based on electricity meter readings. It tracks electricity consumption for three tenants (Ground Floor, First Floor, and Second Floor), calculates charges based on consumption ratios, and manages recharge balances.
+**A modern, comprehensive solution for managing multi-tenant electricity consumption and billing**
 
-## Features
+[![Docker Build](https://github.com/your-username/tenant-electricity-bill-calculator/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/your-username/tenant-electricity-bill-calculator/actions/workflows/docker-publish.yml)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/tenant-electricity-bill-calculator)
 
-- Track electricity meter readings for multiple tenants
-- Record readings for all tenants at once
-- Integrated recharge recording with readings
-- Calculate consumption since last reading
-- Accurately track consumption between recharges
-- Distribute electricity costs based on consumption ratios
-- Manage recharge balances for each tenant
-- View complete transaction history
-- Store all transactions in a CSV file for record keeping
-- Import sample data to quickly get started
+> Transform your multi-tenant electricity management with automated calculations, beautiful reports, and intelligent analytics.
 
-## How It Works
+---
 
-The application is based on the following principles:
+## 🚀 Features at a Glance
 
-1. Each tenant has a meter reading and a balance
-2. When new readings are added for all tenants, consumption is calculated (difference from the previous reading)
-3. After adding all readings, a recharge is recorded for one tenant and added to their balance
-4. When calculating charges:
-   - The application uses the readings from just before the last recharge as the baseline
-   - It calculates consumption between those readings and the current readings
-   - The total consumption for all tenants is calculated
-   - Each tenant's share is determined based on their consumption ratio
-   - The last recharge amount is deducted from all tenants' balances proportionally to their consumption
+### 📊 **Smart Dashboard**
+- **Real-time status ticker** showing current balances, readings, and suggestions
+- **Interactive metrics** with monthly estimates and consumption analytics
+- **Visual charts** for usage patterns and cost analysis
+- **Next recharge suggestions** based on balance analysis
 
-For example:
-- Initial readings: Tenant A: 1000, Tenant B: 2000, Tenant C: 3000
-- Tenant A recharges Rs.1200
-- Later readings: Tenant A: 1020, Tenant B: 2030, Tenant C: 3050
-- When the next recharge occurs:
-  - The application calculates consumption since the readings before the last recharge:
-    - Tenant A: 20 units, Tenant B: 30 units, Tenant C: 50 units (total 100 units)
-  - Tenant A's balance will have Rs.240 deducted (20% of last recharge)
-  - Tenant B's balance will have Rs.360 deducted (30% of last recharge)
-  - Tenant C's balance will have Rs.600 deducted (50% of last recharge)
+### 📝 **Dual Interface Options**
+- **🌐 Modern Web Interface** - Intuitive, responsive design with dark theme
+- **💻 Command-Line Interface** - Perfect for automation and quick operations
 
-## Usage
+### 🧮 **Intelligent Calculations**
+- **Proportional cost distribution** based on actual consumption ratios
+- **Automatic deduction calculations** from tenant balances
+- **Real-time consumption tracking** with historical baselines
+- **Per-unit cost analysis** based on recent data
 
-### Running the Application
+### 📈 **Advanced Analytics**
+- **Monthly consumption estimates** based on last 3 months
+- **Tenant-wise usage breakdown** with visual charts
+- **Cost per unit calculations** with trend analysis
+- **Interactive data visualization** with Chart.js
 
+### 📄 **Professional Reports**
+- **Styled PDF generation** with comprehensive transaction history
+- **Customizable date ranges** for targeted reporting
+- **Professional formatting** using ReportLab
+- **Automatic report generation** after data entry
+
+### 🔄 **Data Management**
+- **Multiple CSV file support** with easy switching
+- **Import/Export functionality** for data portability
+- **Transaction history browser** with search and filtering
+- **Revert functionality** to undo recent entries
+- **Git sync integration** for automated backups
+
+### 🌟 **Modern Features**
+- **Responsive design** that works on all devices
+- **File upload support** for CSV data import
+- **Local/Cloud mode** toggle for different use cases
+- **Health checks** and monitoring support
+- **Security best practices** with non-root containers
+
+---
+
+## 🖼️ Screenshots
+
+### Web Interface Dashboard
+*Clean, modern interface with real-time status and metrics*
+
+### Record Readings Interface  
+*Streamlined data entry with validation and suggestions*
+
+### Analytics & Charts
+*Comprehensive usage analytics with interactive visualizations*
+
+---
+
+## 🏃‍♂️ Quick Start
+
+### 🐳 Docker (Recommended)
+
+**Production deployment:**
+```bash
+git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+cd tenant-electricity-bill-calculator
+docker-compose up -d
+```
+→ Access at `http://localhost:5000`
+
+**Development with live reload:**
+```bash
+docker-compose --profile dev up tenant-electricity-calculator-dev
+```
+→ Access at `http://localhost:5001`
+
+### ☁️ Vercel (Serverless)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/tenant-electricity-bill-calculator)
+
+One-click deployment to Vercel's global CDN with automatic HTTPS.
+
+### 💻 Local Development
+
+```bash
+git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+cd tenant-electricity-bill-calculator
+pip install -r requirements.txt
+python app.py  # Web interface at http://localhost:5000
+python main.py # CLI interface
+```
+
+---
+
+## 📘 Usage Guide
+
+### 🌐 Web Interface
+
+#### 1. **Dashboard Overview**
+- View current tenant balances and meter readings
+- See next suggested recharge based on balance analysis
+- Monitor usage metrics and monthly estimates
+- Access quick actions: Record, Browse, Sync, Settings
+
+#### 2. **Recording New Data**
+```
+Navigation: Dashboard → Record
+```
+- Enter meter readings for all three tenants (Ground Floor, First Floor, Second Floor)
+- Specify which tenant is making a recharge and the amount
+- System automatically:
+  - Calculates consumption since last readings
+  - Distributes previous recharge costs proportionally
+  - Updates all balances based on usage ratios
+  - Generates PDF report (optional)
+
+#### 3. **Browsing Transaction History**
+```
+Navigation: Dashboard → Browse
+```
+- Search transactions by type, tenant, date, or amount
+- Filter by READING or RECHARGE types
+- Sort by timestamp, tenant, or consumption
+- Paginated results with configurable page sizes
+- Export filtered data
+
+#### 4. **Analytics & Reports**
+- **Monthly Estimates**: Based on last 3 months consumption data
+- **Per-unit Cost**: Calculated from recharge amounts and usage
+- **Visual Charts**: Toggle between total usage and tenant-wise views
+- **PDF Reports**: Generate comprehensive transaction reports
+
+#### 5. **Data Synchronization**
+```
+Navigation: Dashboard → Sync
+```
+- Connect to Git repository for automated backups
+- Push/pull data changes with commit messages
+- Track remote repository status
+- Configure Personal Access Tokens for HTTPS repos
+
+#### 6. **Configuration**
+```
+Navigation: Dashboard → Settings
+```
+- Select default CSV file or upload new data
+- Configure Git integration settings
+- Manage application preferences
+- Toggle local/cloud modes
+
+### 💻 Command-Line Interface
+
+#### 1. **Starting the CLI**
 ```bash
 python main.py
 ```
 
-When first starting the application with no existing data, you'll be prompted to import sample data from the provided `sample_transactions.csv` file. This will pre-fill the system with starting meter readings and a sample recharge.
+#### 2. **Main Menu Options**
+- **Option 1**: Record Readings and Recharge
+- **Option 2**: Display Current State
+- **Option 3**: View Transaction History  
+- **Option 4**: Exit
 
-### Main Menu Options
+#### 3. **Recording Data via CLI**
+```
+1. Enter meter readings for all tenants
+2. Select tenant making the recharge
+3. Enter recharge amount
+4. System automatically calculates and updates balances
+```
 
-1. **Record Readings and Recharge**: Record meter readings for all tenants and then add a recharge
-2. **Display Current State**: Show current balances, meter readings, and consumption
-3. **View Transaction History**: Display a history of all readings and recharges
-4. **Exit**: Quit the application
+---
 
-### Workflow Example
+## 🔧 How It Works
 
-1. Initialize with starting meter readings for all tenants (or import sample data)
-2. Use option 1 to record new readings for all tenants and add a recharge
-3. The application will:
-   - Record the new meter readings for all tenants
-   - Calculate consumption since the readings before the last recharge
-   - Deduct from each tenant's balance based on their consumption ratio of the previous recharge amount
-   - Add the new recharge amount to the specified tenant's balance
-   - Store the current readings as the new baseline for the next calculation
+### The Calculation Logic
 
-## Data Storage
+The application uses a **proportional distribution system** based on actual consumption:
 
-The application stores all transactions in a CSV file named `transactions.csv` with the following columns:
+#### Example Scenario:
+```
+Initial State:
+├── Ground Floor: 1000 units, Balance: Rs.0
+├── First Floor: 2000 units, Balance: Rs.0  
+└── Second Floor: 3000 units, Balance: Rs.0
 
-- **Type**: READING or RECHARGE
-- **Timestamp**: Date and time of the transaction
-- **Tenant**: Name of the tenant
-- **Reading/Amount**: Meter reading value or recharge amount
-- **Consumption**: Calculated consumption (for readings only)
-- **Balances**: Current balances for all tenants at the time of the transaction
+First Floor recharges Rs.1200
 
-## Sample Data
+Later readings:
+├── Ground Floor: 1020 units (+20 units)
+├── First Floor: 2030 units (+30 units)
+└── Second Floor: 3050 units (+50 units)
 
-The application includes a `sample_transactions.csv` file with initial data to help you get started:
-- Initial meter readings for all three tenants
-- A sample recharge of Rs.1200 for the First Floor tenant
+When next recharge occurs:
+├── Total consumption: 100 units
+├── Ground Floor pays: 20% × Rs.1200 = Rs.240
+├── First Floor pays: 30% × Rs.1200 = Rs.360
+└── Second Floor pays: 50% × Rs.1200 = Rs.600
+```
 
-## Requirements
+### Key Principles:
+1. **Consumption-based billing**: Costs distributed by actual usage ratios
+2. **Recharge timing**: Deductions occur when the next recharge is recorded
+3. **Balance tracking**: Real-time balance updates for all tenants
+4. **Historical accuracy**: Maintains complete transaction history
 
-- Python 3.6 or higher
-- Standard Python libraries (csv, os, datetime, decimal) 
+---
+
+## 🛠️ Installation & Deployment
+
+### Prerequisites
+- **Python 3.11+** (for local development)
+- **Docker & Docker Compose** (for containerized deployment)
+- **Git** (for version control and sync features)
+
+### Deployment Options
+
+#### 🐳 Docker Production
+```bash
+# Clone repository
+git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+cd tenant-electricity-bill-calculator
+
+# Start production stack
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop stack  
+docker-compose down
+```
+
+#### 🔧 Docker Development
+```bash
+# Start development environment with live reload
+docker-compose --profile dev up tenant-electricity-calculator-dev
+
+# Access development server
+open http://localhost:5001
+```
+
+#### ☁️ Vercel Serverless
+1. Fork this repository
+2. Connect to Vercel dashboard
+3. Deploy with automatic builds on push
+4. Configure environment variables if needed
+
+#### 📦 GitHub Container Registry
+```bash
+# Use pre-built images
+docker pull ghcr.io/your-username/tenant-electricity-bill-calculator:main
+docker run -p 5000:5000 ghcr.io/your-username/tenant-electricity-bill-calculator:main
+```
+
+#### 🖥️ Local Development
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start web server
+python app.py
+
+# Or use CLI
+python main.py
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FLASK_ENV` | Environment mode | `production` |
+| `FLASK_DEBUG` | Enable debug mode | `0` |
+| `DEPLOYED` | Cloud deployment flag | `false` |
+| `VERCEL` | Vercel platform flag | Not set |
+
+---
+
+## 📁 Project Structure
+
+```
+tenant-electricity-bill-calculator/
+├── 📱 Web Application
+│   ├── app.py              # Flask web server
+│   ├── templates/          # HTML templates
+│   ├── static/             # CSS and assets
+│   └── api/                # Vercel serverless functions
+├── 💻 CLI Application  
+│   └── main.py             # Command-line interface
+├── 📊 Reports & Analytics
+│   └── report.py           # PDF generation
+├── 🐳 Docker Configuration
+│   ├── Dockerfile          # Container definition
+│   ├── docker-compose.yml  # Multi-service setup
+│   └── DOCKER_README.md    # Docker documentation  
+├── ☁️ Cloud Deployment
+│   ├── vercel.json         # Vercel configuration
+│   └── .github/workflows/  # CI/CD automation
+├── 📄 Data Files
+│   ├── transactions.csv    # Main data file
+│   ├── uploads/           # Uploaded CSV files
+│   └── outputs/           # Generated reports
+└── 📚 Documentation
+    └── README.md          # This file
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Setup
+```bash
+# Fork and clone the repo
+git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+cd tenant-electricity-bill-calculator
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies  
+pip install -r requirements.txt
+
+# Start development server
+python app.py
+```
+
+### Reporting Issues
+- Use the [GitHub Issues](https://github.com/your-username/tenant-electricity-bill-calculator/issues) page
+- Include screenshots for UI-related issues
+- Provide steps to reproduce bugs
+- Suggest enhancements with use cases
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🆘 Support
+
+- **📚 Documentation**: Check the [Wiki](https://github.com/your-username/tenant-electricity-bill-calculator/wiki)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/your-username/tenant-electricity-bill-calculator/issues)  
+- **💬 Discussions**: [GitHub Discussions](https://github.com/your-username/tenant-electricity-bill-calculator/discussions)
+- **📧 Contact**: Create an issue for direct support
+
+---
+
+## 🙏 Acknowledgments
+
+- **Flask** - Web framework
+- **ReportLab** - PDF generation  
+- **Chart.js** - Interactive charts
+- **Docker** - Containerization
+- **Vercel** - Serverless deployment platform
+
+---
+
+<div align="center">
+
+**⚡ Simplifying multi-tenant electricity management, one calculation at a time.**
+
+[⭐ Star this repo](https://github.com/your-username/tenant-electricity-bill-calculator) • [🐛 Report Bug](https://github.com/your-username/tenant-electricity-bill-calculator/issues) • [✨ Request Feature](https://github.com/your-username/tenant-electricity-bill-calculator/issues)
+
+</div>
