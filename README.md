@@ -2,8 +2,8 @@
 
 **A modern, comprehensive solution for managing multi-tenant electricity consumption and billing**
 
-[![Docker Build](https://github.com/your-username/tenant-electricity-bill-calculator/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/your-username/tenant-electricity-bill-calculator/actions/workflows/docker-publish.yml)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/tenant-electricity-bill-calculator)
+[![Docker Build](https://github.com/anantdark/tenant-electricity-bill-calculator/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/anantdark/tenant-electricity-bill-calculator/actions/workflows/docker-publish.yml)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/anantdark/tenant-electricity-bill-calculator)
 
 > Transform your multi-tenant electricity management with automated calculations, beautiful reports, and intelligent analytics.
 
@@ -74,7 +74,7 @@
 
 **Production deployment:**
 ```bash
-git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+git clone https://github.com/anantdark/tenant-electricity-bill-calculator.git
 cd tenant-electricity-bill-calculator
 docker-compose up -d
 ```
@@ -88,14 +88,14 @@ docker-compose --profile dev up tenant-electricity-calculator-dev
 
 ### ☁️ Vercel (Serverless)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/tenant-electricity-bill-calculator)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/anantdark/tenant-electricity-bill-calculator)
 
 One-click deployment to Vercel's global CDN with automatic HTTPS.
 
 ### 💻 Local Development
 
 ```bash
-git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+git clone https://github.com/anantdark/tenant-electricity-bill-calculator.git
 cd tenant-electricity-bill-calculator
 pip install -r requirements.txt
 python app.py  # Web interface at http://localhost:5000
@@ -230,7 +230,7 @@ When next recharge occurs:
 #### 🐳 Docker Production
 ```bash
 # Clone repository
-git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+git clone https://github.com/anantdark/tenant-electricity-bill-calculator.git
 cd tenant-electricity-bill-calculator
 
 # Start production stack
@@ -261,8 +261,8 @@ open http://localhost:5001
 #### 📦 GitHub Container Registry
 ```bash
 # Use pre-built images
-docker pull ghcr.io/your-username/tenant-electricity-bill-calculator:main
-docker run -p 5000:5000 ghcr.io/your-username/tenant-electricity-bill-calculator:main
+docker pull ghcr.io/anantdark/tenant-electricity-bill-calculator:main
+docker run -p 5000:5000 ghcr.io/anantdark/tenant-electricity-bill-calculator:main
 ```
 
 #### 🖥️ Local Development
@@ -325,7 +325,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### Development Setup
 ```bash
 # Fork and clone the repo
-git clone https://github.com/your-username/tenant-electricity-bill-calculator.git
+git clone https://github.com/anantdark/tenant-electricity-bill-calculator.git
 cd tenant-electricity-bill-calculator
 
 # Create virtual environment
@@ -340,7 +340,7 @@ python app.py
 ```
 
 ### Reporting Issues
-- Use the [GitHub Issues](https://github.com/your-username/tenant-electricity-bill-calculator/issues) page
+- Use the [GitHub Issues](https://github.com/anantdark/tenant-electricity-bill-calculator/issues) page
 - Include screenshots for UI-related issues
 - Provide steps to reproduce bugs
 - Suggest enhancements with use cases
@@ -355,9 +355,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **📚 Documentation**: Check the [Wiki](https://github.com/your-username/tenant-electricity-bill-calculator/wiki)
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/your-username/tenant-electricity-bill-calculator/issues)  
-- **💬 Discussions**: [GitHub Discussions](https://github.com/your-username/tenant-electricity-bill-calculator/discussions)
+- **📚 Documentation**: Check the [Wiki](https://github.com/anantdark/tenant-electricity-bill-calculator/wiki)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/anantdark/tenant-electricity-bill-calculator/issues)  
+- **💬 Discussions**: [GitHub Discussions](https://github.com/anantdark/tenant-electricity-bill-calculator/discussions)
 - **📧 Contact**: Create an issue for direct support
 
 ---
@@ -376,6 +376,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **⚡ Simplifying multi-tenant electricity management, one calculation at a time.**
 
-[⭐ Star this repo](https://github.com/your-username/tenant-electricity-bill-calculator) • [🐛 Report Bug](https://github.com/your-username/tenant-electricity-bill-calculator/issues) • [✨ Request Feature](https://github.com/your-username/tenant-electricity-bill-calculator/issues)
+[⭐ Star this repo](https://github.com/anantdark/tenant-electricity-bill-calculator) • [🐛 Report Bug](https://github.com/anantdark/tenant-electricity-bill-calculator/issues) • [✨ Request Feature](https://github.com/anantdark/tenant-electricity-bill-calculator/issues)
 
 </div>
