@@ -16,7 +16,7 @@ else:
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session, jsonify
 from werkzeug.utils import secure_filename
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, List, Tuple
@@ -364,7 +364,9 @@ class CsvCalculator:
             self.last_recharge_tenant = recharge_tenant
             for t in TENANTS:
                 self.last_readings_before_recharge[t] = self.last_readings[t]
-            timestamp2 = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Ensure recharge timestamp is exactly 1 second after readings timestamp
+            recharge_dt = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S') + timedelta(seconds=1)
+            timestamp2 = recharge_dt.strftime('%Y-%m-%d %H:%M:%S')
             self._append_row({
                 'Type': 'RECHARGE',
                 'Timestamp': timestamp2,
@@ -388,61 +390,71 @@ class CsvCalculator:
         if not self.transactions:
             return '', []
         
-        # Find the last timestamp
-        last_timestamp = self.transactions[-1]['Timestamp']
-        
-        # Find all transactions with the same timestamp (same group)
+        # Find the last timestamp as a datetime object
+        from datetime import datetime
+        last_timestamp_str = self.transactions[-1]['Timestamp']
+        last_timestamp = datetime.strptime(last_timestamp_str, "%Y-%m-%d %H:%M:%S")
+        # Group all transactions within 5 seconds of the last timestamp
         preview_rows = []
         for transaction in reversed(self.transactions):
-            if transaction['Timestamp'] == last_timestamp:
-                preview_rows.append(transaction)
-            else:
+            try:
+                tstamp = datetime.strptime(transaction['Timestamp'], "%Y-%m-%d %H:%M:%S")
+                if abs((last_timestamp - tstamp).total_seconds()) <= 5:
+                    preview_rows.append(transaction)
+                else:
+                    break
+            except Exception:
                 break
-        
         # Reverse to show in chronological order
         preview_rows.reverse()
-        
-        return last_timestamp, preview_rows
+        return last_timestamp_str, preview_rows
 
     def revert_last_group(self) -> int:
         """Revert the last group of transactions and return count of removed rows"""
         if not self.transactions:
             return 0
         
-        # Find the last timestamp
-        last_timestamp = self.transactions[-1]['Timestamp']
-        
-        # Count how many transactions have this timestamp
-        count_to_remove = 0
-        for transaction in reversed(self.transactions):
-            if transaction['Timestamp'] == last_timestamp:
-                count_to_remove += 1
-            else:
-                break
-        
-        if count_to_remove == 0:
+        # Find the last timestamp as a datetime object
+        if not self.transactions:
             return 0
-        
+        from datetime import datetime
+        last_timestamp_str = self.transactions[-1]['Timestamp']
+        last_timestamp = datetime.strptime(last_timestamp_str, "%Y-%m-%d %H:%M:%S")
+
         # Read all rows from CSV
         rows = []
         with open(self.csv_path, 'r', newline='', encoding='utf-8') as f:
             reader = csv.reader(f)
             header = next(reader, None)
             rows = list(reader)
-        
-        # Remove the last count_to_remove rows
+
+        # Remove all rows from the end whose timestamps are within 5 seconds of the last timestamp
+        count_to_remove = 0
+        for row in reversed(rows):
+            try:
+                tstamp = datetime.strptime(row[1], "%Y-%m-%d %H:%M:%S")
+                if abs((last_timestamp - tstamp).total_seconds()) <= 5:
+                    count_to_remove += 1
+                else:
+                    break
+            except Exception:
+                break
+
+        if count_to_remove == 0:
+            return 0
+
         rows = rows[:-count_to_remove]
-        
+
         # Write back to CSV
         with open(self.csv_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             if header:
                 writer.writerow(header)
             writer.writerows(rows)
-        
+
         # Reload the calculator state
         self.load()
-        
+
         return count_to_remove
 
 
@@ -1010,8 +1022,11 @@ def browse():
             return float('-inf')
     
     def sort_key(row):
+        # For timestamp sort, use (timestamp, type) so READING comes before RECHARGE for same timestamp
         if sort_by.lower() == 'timestamp':
-            return key_ts(row[1])
+            # Assign 0 for READING, 1 for RECHARGE, so READING comes first
+            type_order = 0 if row[0].upper() == 'READING' else 1
+            return (key_ts(row[1]), -type_order if sort_order == 'desc' else type_order)
         if sort_by.lower() == 'type':
             return row[0]
         if sort_by.lower() == 'tenant':
